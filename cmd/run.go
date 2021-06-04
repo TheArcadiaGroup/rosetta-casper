@@ -22,9 +22,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/coinbase/rosetta-ethereum/configuration"
-	"github.com/coinbase/rosetta-ethereum/ethereum"
-	"github.com/coinbase/rosetta-ethereum/services"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
+	"github.com/TheArcadiaGroup/rosetta-casper/casper"
+	"github.com/TheArcadiaGroup/rosetta-casper/services"
 
 	"github.com/coinbase/rosetta-sdk-go/asserter"
 	"github.com/coinbase/rosetta-sdk-go/server"
@@ -51,7 +51,7 @@ const (
 var (
 	runCmd = &cobra.Command{
 		Use:   "run",
-		Short: "Run rosetta-ethereum",
+		Short: "Run rosetta-casper",
 		RunE:  runRunCmd,
 	}
 )
@@ -65,11 +65,11 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 	// The asserter automatically rejects incorrectly formatted
 	// requests.
 	asserter, err := asserter.NewServer(
-		ethereum.OperationTypes,
-		ethereum.HistoricalBalanceSupported,
+		casper.OperationTypes,
+		casper.HistoricalBalanceSupported,
 		[]*types.NetworkIdentifier{cfg.Network},
-		ethereum.CallMethods,
-		ethereum.IncludeMempoolCoins,
+		casper.CallMethods,
+		casper.IncludeMempoolCoins,
 	)
 	if err != nil {
 		return fmt.Errorf("%w: could not initialize server asserter", err)
@@ -82,20 +82,20 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	var client *ethereum.Client
+	var client *casper.Client
 	if cfg.Mode == configuration.Online {
-		if !cfg.RemoteGeth {
-			g.Go(func() error {
-				return ethereum.StartGeth(ctx, cfg.GethArguments, g)
-			})
-		}
+		// if !cfg.RemoteGeth {
+		// 	g.Go(func() error {
+		// 		return casper.StartGeth(ctx, cfg.GethArguments, g)
+		// 	})
+		// }
 
 		var err error
-		client, err = ethereum.NewClient(cfg.GethURL, cfg.Params)
+		client, err = casper.NewClient()
 		if err != nil {
-			return fmt.Errorf("%w: cannot initialize ethereum client", err)
+			return fmt.Errorf("%w: cannot initialize casper client", err)
 		}
-		defer client.Close()
+		// defer client.Close()
 	}
 
 	router := services.NewBlockchainRouter(cfg, client, asserter)
@@ -126,7 +126,7 @@ func runRunCmd(cmd *cobra.Command, args []string) error {
 
 	err = g.Wait()
 	if SignalReceived {
-		return errors.New("rosetta-ethereum halted")
+		return errors.New("rosetta-casper halted")
 	}
 
 	return err

@@ -15,13 +15,13 @@
 package services
 
 import (
-	"context"
-	"errors"
+	// "context"
+	// "errors"
 
-	"github.com/coinbase/rosetta-ethereum/configuration"
-	"github.com/coinbase/rosetta-ethereum/ethereum"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
+	// "github.com/TheArcadiaGroup/rosetta-casper/casper"
 
-	"github.com/coinbase/rosetta-sdk-go/types"
+	// "github.com/coinbase/rosetta-sdk-go/types"
 )
 
 // BlockAPIService implements the server.BlockAPIServicer interface.
@@ -41,32 +41,32 @@ func NewBlockAPIService(
 	}
 }
 
-// Block implements the /block endpoint.
-func (s *BlockAPIService) Block(
-	ctx context.Context,
-	request *types.BlockRequest,
-) (*types.BlockResponse, *types.Error) {
-	if s.config.Mode != configuration.Online {
-		return nil, ErrUnavailableOffline
-	}
+// // Block implements the /block endpoint.
+// func (s *BlockAPIService) Block(
+// 	ctx context.Context,
+// 	request *types.BlockRequest,
+// ) (*types.BlockResponse, *types.Error) {
+// 	if s.config.Mode != configuration.Online {
+// 		return nil, ErrUnavailableOffline
+// 	}
 
-	block, err := s.client.Block(ctx, request.BlockIdentifier)
-	if errors.Is(err, ethereum.ErrBlockOrphaned) {
-		return nil, wrapErr(ErrBlockOrphaned, err)
-	}
-	if err != nil {
-		return nil, wrapErr(ErrGeth, err)
-	}
+// 	block, err := s.client.Block(ctx, request.BlockIdentifier)
+// 	if errors.Is(err, casper.ErrBlockOrphaned) {
+// 		return nil, wrapErr(ErrBlockOrphaned, err)
+// 	}
+// 	if err != nil {
+// 		return nil, wrapErr(ErrGeth, err)
+// 	}
 
-	return &types.BlockResponse{
-		Block: block,
-	}, nil
-}
+// 	return &types.BlockResponse{
+// 		Block: block,
+// 	}, nil
+// }
 
-// BlockTransaction implements the /block/transaction endpoint.
-func (s *BlockAPIService) BlockTransaction(
-	ctx context.Context,
-	request *types.BlockTransactionRequest,
-) (*types.BlockTransactionResponse, *types.Error) {
-	return nil, wrapErr(ErrUnimplemented, nil)
-}
+// // BlockTransaction implements the /block/transaction endpoint.
+// func (s *BlockAPIService) BlockTransaction(
+// 	ctx context.Context,
+// 	request *types.BlockTransactionRequest,
+// ) (*types.BlockTransactionResponse, *types.Error) {
+// 	return nil, wrapErr(ErrUnimplemented, nil)
+// }

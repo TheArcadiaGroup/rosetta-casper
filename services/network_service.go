@@ -17,8 +17,8 @@ package services
 import (
 	"context"
 
-	"github.com/coinbase/rosetta-ethereum/configuration"
-	"github.com/coinbase/rosetta-ethereum/ethereum"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
+	"github.com/TheArcadiaGroup/rosetta-casper/casper"
 
 	"github.com/coinbase/rosetta-sdk-go/asserter"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -58,16 +58,16 @@ func (s *NetworkAPIService) NetworkOptions(
 ) (*types.NetworkOptionsResponse, *types.Error) {
 	return &types.NetworkOptionsResponse{
 		Version: &types.Version{
-			NodeVersion:       ethereum.NodeVersion,
+			NodeVersion:       casper.NodeVersion,
 			RosettaVersion:    types.RosettaAPIVersion,
 			MiddlewareVersion: types.String(configuration.MiddlewareVersion),
 		},
 		Allow: &types.Allow{
 			Errors:                  Errors,
-			OperationTypes:          ethereum.OperationTypes,
-			OperationStatuses:       ethereum.OperationStatuses,
-			HistoricalBalanceLookup: ethereum.HistoricalBalanceSupported,
-			CallMethods:             ethereum.CallMethods,
+			OperationTypes:          casper.OperationTypes,
+			OperationStatuses:       casper.OperationStatuses,
+			HistoricalBalanceLookup: casper.HistoricalBalanceSupported,
+			CallMethods:             casper.CallMethods,
 		},
 	}, nil
 }
@@ -81,7 +81,7 @@ func (s *NetworkAPIService) NetworkStatus(
 		return nil, ErrUnavailableOffline
 	}
 
-	currentBlock, currentTime, syncStatus, peers, err := s.client.Status(ctx)
+	currentBlock, currentTime, peers, err := s.client.Status(ctx)
 	if err != nil {
 		return nil, wrapErr(ErrGeth, err)
 	}
@@ -94,7 +94,6 @@ func (s *NetworkAPIService) NetworkStatus(
 		CurrentBlockIdentifier: currentBlock,
 		CurrentBlockTimestamp:  currentTime,
 		GenesisBlockIdentifier: s.config.GenesisBlockIdentifier,
-		SyncStatus:             syncStatus,
 		Peers:                  peers,
 	}, nil
 }

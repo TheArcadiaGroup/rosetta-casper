@@ -9,9 +9,9 @@
 <p align="center">
   <a href="https://circleci.com/gh/coinbase/rosetta-ethereum/tree/master"><img src="https://circleci.com/gh/coinbase/rosetta-ethereum/tree/master.svg?style=shield" /></a>
   <a href="https://coveralls.io/github/coinbase/rosetta-ethereum"><img src="https://coveralls.io/repos/github/coinbase/rosetta-ethereum/badge.svg" /></a>
-  <a href="https://goreportcard.com/report/github.com/coinbase/rosetta-ethereum"><img src="https://goreportcard.com/badge/github.com/coinbase/rosetta-ethereum" /></a>
-  <a href="https://github.com/coinbase/rosetta-ethereum/blob/master/LICENSE.txt"><img src="https://img.shields.io/github/license/coinbase/rosetta-ethereum.svg" /></a>
-  <a href="https://pkg.go.dev/github.com/coinbase/rosetta-ethereum?tab=overview"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=shield" /></a>
+  <a href="https://goreportcard.com/report/github.com/TheArcadiaGroup/rosetta-casper"><img src="https://goreportcard.com/badge/github.com/TheArcadiaGroup/rosetta-casper" /></a>
+  <a href="https://github.com/TheArcadiaGroup/rosetta-casper/blob/master/LICENSE.txt"><img src="https://img.shields.io/github/license/coinbase/rosetta-ethereum.svg" /></a>
+  <a href="https://pkg.go.dev/github.com/TheArcadiaGroup/rosetta-casper?tab=overview"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=shield" /></a>
 </p>
 
 <p align="center"><b>

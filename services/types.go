@@ -16,13 +16,13 @@ package services
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"math/big"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	// "github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/common/hexutil"
+	// ethTypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 // Client is used by the servicers to get block
@@ -31,32 +31,31 @@ type Client interface {
 	Status(context.Context) (
 		*types.BlockIdentifier,
 		int64,
-		*types.SyncStatus,
 		[]*types.Peer,
 		error,
 	)
 
-	Block(
-		context.Context,
-		*types.PartialBlockIdentifier,
-	) (*types.Block, error)
+	// Block(
+	// 	context.Context,
+	// 	*types.PartialBlockIdentifier,
+	// ) (*types.Block, error)
 
-	Balance(
-		context.Context,
-		*types.AccountIdentifier,
-		*types.PartialBlockIdentifier,
-	) (*types.AccountBalanceResponse, error)
+	// Balance(
+	// 	context.Context,
+	// 	*types.AccountIdentifier,
+	// 	*types.PartialBlockIdentifier,
+	// ) (*types.AccountBalanceResponse, error)
 
-	PendingNonceAt(context.Context, common.Address) (uint64, error)
+	// PendingNonceAt(context.Context, common.Address) (uint64, error)
 
-	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	// SuggestGasPrice(ctx context.Context) (*big.Int, error)
 
-	SendTransaction(ctx context.Context, tx *ethTypes.Transaction) error
+	// SendTransaction(ctx context.Context, tx *ethTypes.Transaction) error
 
-	Call(
-		ctx context.Context,
-		request *types.CallRequest,
-	) (*types.CallResponse, error)
+	// Call(
+	// 	ctx context.Context,
+	// 	request *types.CallRequest,
+	// ) (*types.CallResponse, error)
 }
 
 type options struct {
@@ -73,35 +72,35 @@ type metadataWire struct {
 	GasPrice string `json:"gas_price"`
 }
 
-func (m *metadata) MarshalJSON() ([]byte, error) {
-	mw := &metadataWire{
-		Nonce:    hexutil.Uint64(m.Nonce).String(),
-		GasPrice: hexutil.EncodeBig(m.GasPrice),
-	}
+// func (m *metadata) MarshalJSON() ([]byte, error) {
+// 	mw := &metadataWire{
+// 		Nonce:    hexutil.Uint64(m.Nonce).String(),
+// 		GasPrice: hexutil.EncodeBig(m.GasPrice),
+// 	}
 
-	return json.Marshal(mw)
-}
+// 	return json.Marshal(mw)
+// }
 
-func (m *metadata) UnmarshalJSON(data []byte) error {
-	var mw metadataWire
-	if err := json.Unmarshal(data, &mw); err != nil {
-		return err
-	}
+// func (m *metadata) UnmarshalJSON(data []byte) error {
+// 	var mw metadataWire
+// 	if err := json.Unmarshal(data, &mw); err != nil {
+// 		return err
+// 	}
 
-	nonce, err := hexutil.DecodeUint64(mw.Nonce)
-	if err != nil {
-		return err
-	}
+// 	nonce, err := hexutil.DecodeUint64(mw.Nonce)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	gasPrice, err := hexutil.DecodeBig(mw.GasPrice)
-	if err != nil {
-		return err
-	}
+// 	gasPrice, err := hexutil.DecodeBig(mw.GasPrice)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	m.GasPrice = gasPrice
-	m.Nonce = nonce
-	return nil
-}
+// 	m.GasPrice = gasPrice
+// 	m.Nonce = nonce
+// 	return nil
+// }
 
 type parseMetadata struct {
 	Nonce    uint64   `json:"nonce"`
@@ -115,15 +114,15 @@ type parseMetadataWire struct {
 	ChainID  string `json:"chain_id"`
 }
 
-func (p *parseMetadata) MarshalJSON() ([]byte, error) {
-	pmw := &parseMetadataWire{
-		Nonce:    hexutil.Uint64(p.Nonce).String(),
-		GasPrice: hexutil.EncodeBig(p.GasPrice),
-		ChainID:  hexutil.EncodeBig(p.ChainID),
-	}
+// func (p *parseMetadata) MarshalJSON() ([]byte, error) {
+// 	pmw := &parseMetadataWire{
+// 		Nonce:    hexutil.Uint64(p.Nonce).String(),
+// 		GasPrice: hexutil.EncodeBig(p.GasPrice),
+// 		ChainID:  hexutil.EncodeBig(p.ChainID),
+// 	}
 
-	return json.Marshal(pmw)
-}
+// 	return json.Marshal(pmw)
+// }
 
 type transaction struct {
 	From     string   `json:"from"`
@@ -147,65 +146,65 @@ type transactionWire struct {
 	ChainID  string `json:"chain_id"`
 }
 
-func (t *transaction) MarshalJSON() ([]byte, error) {
-	tw := &transactionWire{
-		From:     t.From,
-		To:       t.To,
-		Value:    hexutil.EncodeBig(t.Value),
-		Input:    hexutil.Encode(t.Input),
-		Nonce:    hexutil.EncodeUint64(t.Nonce),
-		GasPrice: hexutil.EncodeBig(t.GasPrice),
-		GasLimit: hexutil.EncodeUint64(t.GasLimit),
-		ChainID:  hexutil.EncodeBig(t.ChainID),
-	}
+// func (t *transaction) MarshalJSON() ([]byte, error) {
+// 	tw := &transactionWire{
+// 		From:     t.From,
+// 		To:       t.To,
+// 		Value:    hexutil.EncodeBig(t.Value),
+// 		Input:    hexutil.Encode(t.Input),
+// 		Nonce:    hexutil.EncodeUint64(t.Nonce),
+// 		GasPrice: hexutil.EncodeBig(t.GasPrice),
+// 		GasLimit: hexutil.EncodeUint64(t.GasLimit),
+// 		ChainID:  hexutil.EncodeBig(t.ChainID),
+// 	}
 
-	return json.Marshal(tw)
-}
+// 	return json.Marshal(tw)
+// }
 
-func (t *transaction) UnmarshalJSON(data []byte) error {
-	var tw transactionWire
-	if err := json.Unmarshal(data, &tw); err != nil {
-		return err
-	}
+// func (t *transaction) UnmarshalJSON(data []byte) error {
+// 	var tw transactionWire
+// 	if err := json.Unmarshal(data, &tw); err != nil {
+// 		return err
+// 	}
 
-	value, err := hexutil.DecodeBig(tw.Value)
-	if err != nil {
-		return err
-	}
+// 	value, err := hexutil.DecodeBig(tw.Value)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	input, err := hexutil.Decode(tw.Input)
-	if err != nil {
-		return err
-	}
+// 	input, err := hexutil.Decode(tw.Input)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	nonce, err := hexutil.DecodeUint64(tw.Nonce)
-	if err != nil {
-		return err
-	}
+// 	nonce, err := hexutil.DecodeUint64(tw.Nonce)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	gasPrice, err := hexutil.DecodeBig(tw.GasPrice)
-	if err != nil {
-		return err
-	}
+// 	gasPrice, err := hexutil.DecodeBig(tw.GasPrice)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	gasLimit, err := hexutil.DecodeUint64(tw.GasLimit)
-	if err != nil {
-		return err
-	}
+// 	gasLimit, err := hexutil.DecodeUint64(tw.GasLimit)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	chainID, err := hexutil.DecodeBig(tw.ChainID)
-	if err != nil {
-		return err
-	}
+// 	chainID, err := hexutil.DecodeBig(tw.ChainID)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	t.From = tw.From
-	t.To = tw.To
-	t.Value = value
-	t.Input = input
-	t.Nonce = nonce
-	t.GasPrice = gasPrice
-	t.GasLimit = gasLimit
-	t.ChainID = chainID
-	t.GasPrice = gasPrice
-	return nil
-}
+// 	t.From = tw.From
+// 	t.To = tw.To
+// 	t.Value = value
+// 	t.Input = input
+// 	t.Nonce = nonce
+// 	t.GasPrice = gasPrice
+// 	t.GasLimit = gasLimit
+// 	t.ChainID = chainID
+// 	t.GasPrice = gasPrice
+// 	return nil
+// }

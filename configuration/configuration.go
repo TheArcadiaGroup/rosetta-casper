@@ -20,10 +20,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/coinbase/rosetta-ethereum/ethereum"
+	"github.com/TheArcadiaGroup/rosetta-casper/casper"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/ethereum/go-ethereum/params"
+	// "github.com/ethereum/go-ethereum/params"
 )
 
 // Mode is the setting that determines if
@@ -86,8 +86,8 @@ type Configuration struct {
 	Port                   int
 	GethArguments          string
 
-	// Block Reward Data
-	Params *params.ChainConfig
+	// // Block Reward Data
+	// Params *params.ChainConfig
 }
 
 // LoadConfiguration attempts to create a new Configuration
@@ -111,20 +111,20 @@ func LoadConfiguration() (*Configuration, error) {
 	switch networkValue {
 	case Mainnet:
 		config.Network = &types.NetworkIdentifier{
-			Blockchain: ethereum.Blockchain,
-			Network:    ethereum.MainnetNetwork,
+			Blockchain: casper.Blockchain,
+			Network:    casper.MainnetNetwork,
 		}
-		config.GenesisBlockIdentifier = ethereum.MainnetGenesisBlockIdentifier
-		config.Params = params.MainnetChainConfig
-		config.GethArguments = ethereum.MainnetGethArguments
+		config.GenesisBlockIdentifier = casper.MainnetGenesisBlockIdentifier
+		// config.Params = params.MainnetChainConfig
+		// config.GethArguments = casper.MainnetGethArguments
 	case Testnet:
 		config.Network = &types.NetworkIdentifier{
-			Blockchain: ethereum.Blockchain,
-			Network:    ethereum.TestnetNetwork,
+			Blockchain: casper.Blockchain,
+			Network:    casper.TestnetNetwork,
 		}
-		config.GenesisBlockIdentifier = ethereum.TestnetGenesisBlockIdentifier
-		config.Params = params.RopstenChainConfig
-		config.GethArguments = ethereum.TestnetGethArguments
+		config.GenesisBlockIdentifier = casper.TestnetGenesisBlockIdentifier
+		// config.Params = params.RopstenChainConfig
+		// config.GethArguments = casper.TestnetGethArguments
 	case "":
 		return nil, errors.New("NETWORK must be populated")
 	default:

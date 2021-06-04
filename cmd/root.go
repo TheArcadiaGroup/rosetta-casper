@@ -43,7 +43,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	rootCmd.AddCommand(utilsBootstrapCmd)
+	// rootCmd.AddCommand(utilsBootstrapCmd)
 }
 
 // handleSignals handles OS signals so we can ensure we close database

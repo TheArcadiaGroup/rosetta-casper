@@ -20,8 +20,8 @@ RUN mkdir -p /app \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y curl make gcc g++ git
-ENV GOLANG_VERSION 1.15.5
-ENV GOLANG_DOWNLOAD_SHA256 9a58494e8da722c3aef248c9227b0e9c528c7318309827780f16220998180a0d
+ENV GOLANG_VERSION 1.16.4
+ENV GOLANG_DOWNLOAD_SHA256 7154e88f5a8047aad4b80ebace58a059e36e7e2e4eb3b383127a28c711b4ff59
 ENV GOLANG_DOWNLOAD_URL https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
 
 RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz \
@@ -33,19 +33,19 @@ ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
-# Compile geth
-FROM golang-builder as geth-builder
+# # Compile geth
+# FROM golang-builder as geth-builder
 
-# VERSION: go-ethereum v.1.9.24
-RUN git clone https://github.com/ethereum/go-ethereum \
-  && cd go-ethereum \
-  && git checkout cc05b050df5f88e80bb26aaf6d2f339c49c2d702
+# # VERSION: go-ethereum v.1.9.24
+# RUN git clone https://github.com/ethereum/go-ethereum \
+#   && cd go-ethereum \
+#   && git checkout cc05b050df5f88e80bb26aaf6d2f339c49c2d702
 
-RUN cd go-ethereum \
-  && make geth
+# RUN cd go-ethereum \
+#   && make geth
 
-RUN mv go-ethereum/build/bin/geth /app/geth \
-  && rm -rf go-ethereum
+# RUN mv go-ethereum/build/bin/geth /app/geth \
+#   && rm -rf go-ethereum
 
 # Compile rosetta-ethereum
 FROM golang-builder as rosetta-builder
@@ -55,10 +55,10 @@ COPY . src
 RUN cd src \
   && go build
 
-RUN mv src/rosetta-ethereum /app/rosetta-ethereum \
-  && mkdir /app/ethereum \
-  && mv src/ethereum/call_tracer.js /app/ethereum/call_tracer.js \
-  && mv src/ethereum/geth.toml /app/ethereum/geth.toml \
+RUN mv src/rosetta-casper /app/rosetta-casper \
+  && mkdir /app/casper \
+  # && mv src/ethereum/call_tracer.js /app/ethereum/call_tracer.js \
+  # && mv src/ethereum/geth.toml /app/ethereum/geth.toml \
   && rm -rf src 
 
 ## Build Final Image
@@ -71,14 +71,14 @@ RUN mkdir -p /app \
 
 WORKDIR /app
 
-# Copy binary from geth-builder
-COPY --from=geth-builder /app/geth /app/geth
+# # Copy binary from geth-builder
+# COPY --from=geth-builder /app/geth /app/geth
 
 # Copy binary from rosetta-builder
-COPY --from=rosetta-builder /app/ethereum /app/ethereum
-COPY --from=rosetta-builder /app/rosetta-ethereum /app/rosetta-ethereum
+COPY --from=rosetta-builder /app/casper /app/casper
+COPY --from=rosetta-builder /app/rosetta-casper /app/rosetta-casper
 
 # Set permissions for everything added to /app
 RUN chmod -R 755 /app/*
 
-CMD ["/app/rosetta-ethereum", "run"]
+CMD ["/app/rosetta-casper", "run"]

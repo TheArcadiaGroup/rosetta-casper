@@ -19,10 +19,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/coinbase/rosetta-ethereum/ethereum"
+	"github.com/TheArcadiaGroup/rosetta-casper/casper"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/ethereum/go-ethereum/params"
+	// "github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/assert"
 )
 

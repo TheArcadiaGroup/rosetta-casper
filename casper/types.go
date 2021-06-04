@@ -12,39 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ethereum
+package casper
 
 import (
-	"context"
+	// "context"
 	"fmt"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
+	// "github.com/ethereum/go-ethereum/params"
+	// "github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
 	// NodeVersion is the version of geth we are using.
-	NodeVersion = "1.9.24"
+	NodeVersion = "1_0_0"
 
 	// Blockchain is Ethereum.
-	Blockchain string = "Ethereum"
+	Blockchain string = "Casper"
 
 	// MainnetNetwork is the value of the network
 	// in MainnetNetworkIdentifier.
-	MainnetNetwork string = "Mainnet"
+	MainnetNetwork string = "casper"
 
 	// TestnetNetwork is the value of the network
 	// in TestnetNetworkIdentifier.
-	TestnetNetwork string = "Ropsten"
+	TestnetNetwork string = "casper-test"
 
 	// Symbol is the symbol value
 	// used in Currency.
-	Symbol = "ETH"
+	Symbol = "CSPR"
 
 	// Decimals is the decimals value
 	// used in Currency.
-	Decimals = 18
+	Decimals = 9
 
 	// MinerRewardOpType is used to describe
 	// a miner block reward.
@@ -116,6 +116,10 @@ const (
 
 	// IncludeMempoolCoins does not apply to rosetta-ethereum as it is not UTXO-based.
 	IncludeMempoolCoins = false
+
+	MainnetGenesisHash = ""
+
+	TestnetGenesisHash = ""
 )
 
 var (
@@ -125,14 +129,14 @@ var (
 	// MainnetGenesisBlockIdentifier is the *types.BlockIdentifier
 	// of the mainnet genesis block.
 	MainnetGenesisBlockIdentifier = &types.BlockIdentifier{
-		Hash:  params.MainnetGenesisHash.Hex(),
+		Hash:  MainnetGenesisHash,
 		Index: GenesisBlockIndex,
 	}
 
 	// TestnetGenesisBlockIdentifier is the *types.BlockIdentifier
 	// of the testnet genesis block.
 	TestnetGenesisBlockIdentifier = &types.BlockIdentifier{
-		Hash:  params.RopstenGenesisHash.Hex(),
+		Hash:  TestnetGenesisHash,
 		Index: GenesisBlockIndex,
 	}
 
@@ -172,21 +176,21 @@ var (
 
 	// CallMethods are all supported call methods.
 	CallMethods = []string{
-		"eth_getTransactionReceipt",
+		// "eth_getTransactionReceipt",
 	}
 )
 
-// JSONRPC is the interface for accessing go-ethereum's JSON RPC endpoint.
-type JSONRPC interface {
-	CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error
-	BatchCallContext(ctx context.Context, b []rpc.BatchElem) error
-	Close()
-}
+// // JSONRPC is the interface for accessing go-ethereum's JSON RPC endpoint.
+// type JSONRPC interface {
+// 	CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error
+// 	BatchCallContext(ctx context.Context, b []rpc.BatchElem) error
+// 	Close()
+// }
 
-// GraphQL is the interface for accessing go-ethereum's GraphQL endpoint.
-type GraphQL interface {
-	Query(ctx context.Context, input string) (string, error)
-}
+// // GraphQL is the interface for accessing go-ethereum's GraphQL endpoint.
+// type GraphQL interface {
+// 	Query(ctx context.Context, input string) (string, error)
+// }
 
 // CallType returns a boolean indicating
 // if the provided trace type is a call type.
