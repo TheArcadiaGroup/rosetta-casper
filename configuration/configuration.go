@@ -62,15 +62,15 @@ const (
 	// implementation.
 	PortEnv = "PORT"
 
-	// GethEnv is an optional environment variable
-	// used to connect rosetta-ethereum to an already
-	// running geth node.
-	GethEnv = "GETH"
+	// // GethEnv is an optional environment variable
+	// // used to connect rosetta-ethereum to an already
+	// // running geth node.
+	// GethEnv = "GETH"
 
-	// DefaultGethURL is the default URL for
-	// a running geth node. This is used
-	// when GethEnv is not populated.
-	DefaultGethURL = "http://localhost:8545"
+	// // DefaultGethURL is the default URL for
+	// // a running geth node. This is used
+	// // when GethEnv is not populated.
+	// DefaultGethURL = "http://localhost:8545"
 
 	// MiddlewareVersion is the version of rosetta-ethereum.
 	MiddlewareVersion = "0.0.4"
@@ -81,10 +81,10 @@ type Configuration struct {
 	Mode                   Mode
 	Network                *types.NetworkIdentifier
 	GenesisBlockIdentifier *types.BlockIdentifier
-	GethURL                string
-	RemoteGeth             bool
+	// GethURL                string
+	// RemoteGeth             bool
 	Port                   int
-	GethArguments          string
+	// GethArguments          string
 
 	// // Block Reward Data
 	// Params *params.ChainConfig
@@ -131,12 +131,12 @@ func LoadConfiguration() (*Configuration, error) {
 		return nil, fmt.Errorf("%s is not a valid network", networkValue)
 	}
 
-	config.GethURL = DefaultGethURL
-	envGethURL := os.Getenv(GethEnv)
-	if len(envGethURL) > 0 {
-		config.RemoteGeth = true
-		config.GethURL = envGethURL
-	}
+	// config.GethURL = DefaultGethURL
+	// envGethURL := os.Getenv(GethEnv)
+	// if len(envGethURL) > 0 {
+	// 	config.RemoteGeth = true
+	// 	config.GethURL = envGethURL
+	// }
 
 	portValue := os.Getenv(PortEnv)
 	if len(portValue) == 0 {

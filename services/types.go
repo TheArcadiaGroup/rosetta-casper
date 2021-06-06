@@ -35,10 +35,15 @@ type Client interface {
 		error,
 	)
 
-	// Block(
-	// 	context.Context,
-	// 	*types.PartialBlockIdentifier,
-	// ) (*types.Block, error)
+	Block(
+		context.Context,
+		*types.PartialBlockIdentifier,
+	) (*types.Block, error)
+
+	BlockTransaction(
+		context.Context,
+		*types.BlockIdentifier,
+	) (*types.Transaction, error)
 
 	// Balance(
 	// 	context.Context,

@@ -23,7 +23,7 @@ import (
 	"math/big"
 	"testing"
 
-	mocks "github.com/TheArcadiaGroup/rosetta-casper/mocks/ethereum"
+	"github.com/TheArcadiaGroup/rosetta-casper/casper"
 
 	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	// "github.com/ethereum/go-ethereum"

@@ -16,9 +16,9 @@ package casper
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	// "errors"
-	// "fmt"
+	"fmt"
 	// "log"
 	// "math/big"
 	// "net/http"
@@ -62,6 +62,7 @@ type Client struct {
 	// g GraphQL
 
 	// traceSemaphore *semaphore.Weighted
+	RpcClient *CasperSDK.RpcClient
 }
 
 // NewClient creates a Client that from the provided url and params.
@@ -82,13 +83,13 @@ func NewClient() (*Client, error) {
 	// if err != nil {
 	// 	return nil, fmt.Errorf("%w: unable to create GraphQL client", err)
 	// }
-
-	return &Client{}, nil
+	RpcClient := CasperSDK.NewRpcClient("http://155.138.175.136:7777/rpc")
+	return &Client{RpcClient}, nil
 }
 
-func NewRpcClient() *CasperSDK.RpcClient {
-	return CasperSDK.NewRpcClient("http://155.138.175.136:7777/rpc")
-}
+// func NewRpcClient() *CasperSDK.RpcClient {
+// 	return CasperSDK.NewRpcClient("http://155.138.175.136:7777/rpc")
+// }
 
 // // Close shuts down the RPC client connection.
 // func (ec *Client) Close() {
@@ -103,13 +104,13 @@ func (ec *Client) Status(ctx context.Context) (
 	[]*RosettaTypes.Peer,
 	error,
 ) {
-	RpcClient := NewRpcClient()
-	blockres, err := RpcClient.GetLatestBlock()
+	// RpcClient := NewRpcClient()
+	blockres, err := ec.RpcClient.GetLatestBlock()
 	if err != nil {
 		return nil, -1, nil, err
 	}
 
-	casper_peers, err := RpcClient.GetPeers()
+	casper_peers, err := ec.RpcClient.GetPeers()
 	if err != nil {
 		return nil, -1, nil, err
 	}
@@ -198,30 +199,137 @@ func (ec *Client) Status(ctx context.Context) (
 // 	return hexutil.EncodeBig(number)
 // }
 
-// // Block returns a populated block at the *RosettaTypes.PartialBlockIdentifier.
-// // If neither the hash or index is populated in the *RosettaTypes.PartialBlockIdentifier,
-// // the current block is returned.
-// func (ec *Client) Block(
-// 	ctx context.Context,
-// 	blockIdentifier *RosettaTypes.PartialBlockIdentifier,
-// ) (*RosettaTypes.Block, error) {
-// 	if blockIdentifier != nil {
-// 		if blockIdentifier.Hash != nil {
-// 			return ec.getParsedBlock(ctx, "eth_getBlockByHash", *blockIdentifier.Hash, true)
-// 		}
+// Block returns a populated block at the *RosettaTypes.PartialBlockIdentifier.
+// If neither the hash or index is populated in the *RosettaTypes.PartialBlockIdentifier,
+// the current block is returned.
+func (ec *Client) Block(
+	ctx context.Context,
+	blockIdentifier *RosettaTypes.PartialBlockIdentifier,
+) (*RosettaTypes.Block, error) {
+	var block CasperSDK.BlockResponse
+	var err error
+	var block_transfers []CasperSDK.TransferResponse
+	if blockIdentifier != nil {
+		if blockIdentifier.Hash != nil {
+			block, err = ec.RpcClient.GetBlockByHash(*blockIdentifier.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}
 
-// 		if blockIdentifier.Index != nil {
-// 			return ec.getParsedBlock(
-// 				ctx,
-// 				"eth_getBlockByNumber",
-// 				toBlockNumArg(big.NewInt(*blockIdentifier.Index)),
-// 				true,
-// 			)
-// 		}
-// 	}
+			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(*blockIdentifier.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}	
+		if blockIdentifier.Index != nil {
+			block, err = ec.RpcClient.GetBlockByHeight(uint64(*blockIdentifier.Index))
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
 
-// 	return ec.getParsedBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(nil), true)
-// }
+			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(*blockIdentifier.Index))
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}
+	}
+
+	block, err = ec.RpcClient.GetLatestBlock()
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get block", err)
+	}	
+
+	block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get block", err)
+	}
+
+	BlockIdentifier := &RosettaTypes.BlockIdentifier{
+		Hash:  block.Hash,
+		Index: int64(block.Header.Height),
+	}
+	ParentBlockIdentifier := BlockIdentifier
+	if BlockIdentifier.Index != GenesisBlockIndex {
+		ParentBlockIdentifier = &RosettaTypes.BlockIdentifier{
+			Hash:  block.Header.ParentHash,
+			Index: BlockIdentifier.Index - 1,
+		}
+	}
+	Transactions := make(
+		[]*RosettaTypes.Transaction,
+		len(block_transfers),
+	)
+
+	for i, tx := range block_transfers {
+		populatedTransaction := &RosettaTypes.Transaction{
+			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
+				Hash: *tx.ID,
+			},
+			// Operations: ops,
+			// Metadata: map[string]interface{}{
+			// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
+			// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
+			// 	"receipt":   receiptMap,
+			// 	"trace":     traceMap,
+			// },
+		}		
+		Transactions[i+1] = populatedTransaction
+	}
+
+	return &RosettaTypes.Block{
+		BlockIdentifier:       BlockIdentifier,
+		ParentBlockIdentifier: ParentBlockIdentifier,
+		Timestamp:             block.Header.Timestamp.UnixNano() / 1e6,
+		Transactions:          Transactions,
+	}, nil
+}
+
+func (ec *Client) BlockTransaction(
+	ctx context.Context,
+	blockIdentifier *RosettaTypes.BlockIdentifier,
+) (*RosettaTypes.Transaction, error) {
+	var block_transfers []CasperSDK.TransferResponse
+	var err error
+	if blockIdentifier != nil {
+		if blockIdentifier.Hash != "" {
+			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(blockIdentifier.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}	
+		if blockIdentifier.Index != 0 {
+			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(blockIdentifier.Index))
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}
+	}
+	block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get block", err)
+	}
+	var transaction *RosettaTypes.Transaction
+	for _, tx := range block_transfers {
+		transaction = &RosettaTypes.Transaction{
+			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
+				Hash: *tx.ID,
+			},
+			// Operations: ops,
+			// Metadata: map[string]interface{}{
+			// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
+			// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
+			// 	"receipt":   receiptMap,
+			// 	"trace":     traceMap,
+			// },
+		}		
+	}
+	
+	return transaction, nil
+}
+
+
+
+
 
 // // Header returns a block header from the current canonical chain. If number is
 // // nil, the latest known header is returned.
@@ -457,9 +565,9 @@ func (ec *Client) Status(ctx context.Context) (
 // 	Result *Call `json:"result"`
 // }
 
-type rpcRawCall struct {
-	Result json.RawMessage `json:"result"`
-}
+// type rpcRawCall struct {
+// 	Result json.RawMessage `json:"result"`
+// }
 
 // // Call is an Ethereum debug trace.
 // type Call struct {
@@ -850,9 +958,9 @@ type rpcRawCall struct {
 // 	}, nil
 // }
 
-func convertTime(time uint64) int64 {
-	return int64(time) * 1000
-}
+// func convertTime(time uint64) int64 {
+// 	return int64(time) * 1000
+// }
 
 // func (ec *Client) populateTransactions(
 // 	blockIdentifier *RosettaTypes.BlockIdentifier,

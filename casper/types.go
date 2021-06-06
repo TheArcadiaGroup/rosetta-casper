@@ -16,7 +16,7 @@ package casper
 
 import (
 	// "context"
-	"fmt"
+	// "fmt"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
 	// "github.com/ethereum/go-ethereum/params"
@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	// NodeVersion is the version of geth we are using.
-	NodeVersion = "1_0_0"
+	// NodeVersion
+	NodeVersion = "1_2_0"
 
 	// Blockchain is Ethereum.
 	Blockchain string = "Casper"
@@ -111,20 +111,20 @@ const (
 	// of a transfer.
 	TransferGasLimit = int64(21000) //nolint:gomnd
 
-	// MainnetGethArguments are the arguments to start a mainnet geth instance.
-	MainnetGethArguments = `--config=/app/ethereum/geth.toml --gcmode=archive --graphql`
+	// // MainnetGethArguments are the arguments to start a mainnet geth instance.
+	// MainnetGethArguments = `--config=/app/ethereum/geth.toml --gcmode=archive --graphql`
 
 	// IncludeMempoolCoins does not apply to rosetta-ethereum as it is not UTXO-based.
 	IncludeMempoolCoins = false
 
-	MainnetGenesisHash = ""
+	MainnetGenesisHash = "2fe9630b7790852e4409d815b04ca98f37effcdf9097d317b9b9b8ad658f47c8"
 
-	TestnetGenesisHash = ""
+	TestnetGenesisHash = "7952a42ee8568532bc454498a6d5f303423f7cf272880f37af9222a1448efa43"
 )
 
 var (
-	// TestnetGethArguments are the arguments to start a ropsten geth instance.
-	TestnetGethArguments = fmt.Sprintf("%s --ropsten", MainnetGethArguments)
+	// // TestnetGethArguments are the arguments to start a ropsten geth instance.
+	// TestnetGethArguments = fmt.Sprintf("%s --ropsten", MainnetGethArguments)
 
 	// MainnetGenesisBlockIdentifier is the *types.BlockIdentifier
 	// of the mainnet genesis block.
