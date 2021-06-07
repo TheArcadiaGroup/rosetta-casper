@@ -287,6 +287,7 @@ func (ec *Client) Block(
 func (ec *Client) BlockTransaction(
 	ctx context.Context,
 	blockIdentifier *RosettaTypes.BlockIdentifier,
+	transactionIdentifier *RosettaTypes.TransactionIdentifier,
 ) (*RosettaTypes.Transaction, error) {
 	var block_transfers []CasperSDK.TransferResponse
 	var err error
@@ -310,20 +311,21 @@ func (ec *Client) BlockTransaction(
 	}
 	var transaction *RosettaTypes.Transaction
 	for _, tx := range block_transfers {
-		transaction = &RosettaTypes.Transaction{
-			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
-				Hash: *tx.ID,
-			},
-			// Operations: ops,
-			// Metadata: map[string]interface{}{
-			// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
-			// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
-			// 	"receipt":   receiptMap,
-			// 	"trace":     traceMap,
-			// },
+		if *tx.ID == transactionIdentifier.Hash{
+			transaction = &RosettaTypes.Transaction{
+				TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
+					Hash: *tx.ID,
+				},
+				// Operations: ops,
+				// Metadata: map[string]interface{}{
+				// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
+				// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
+				// 	"receipt":   receiptMap,
+				// 	"trace":     traceMap,
+				// },
+			}
 		}		
 	}
-	
 	return transaction, nil
 }
 

@@ -72,7 +72,7 @@ func (s *BlockAPIService) BlockTransaction(
 		return nil, ErrUnavailableOffline
 	}
 
-	transaction, err := s.client.BlockTransaction(ctx, request.BlockIdentifier)
+	transaction, err := s.client.BlockTransaction(ctx, request.BlockIdentifier, request.TransactionIdentifier)
 	if errors.Is(err, casper.ErrBlockOrphaned) {
 		return nil, wrapErr(ErrBlockOrphaned, err)
 	}

@@ -43,13 +43,14 @@ type Client interface {
 	BlockTransaction(
 		context.Context,
 		*types.BlockIdentifier,
+		*types.TransactionIdentifier,
 	) (*types.Transaction, error)
 
-	// Balance(
-	// 	context.Context,
-	// 	*types.AccountIdentifier,
-	// 	*types.PartialBlockIdentifier,
-	// ) (*types.AccountBalanceResponse, error)
+	Balance(
+		context.Context,
+		*types.AccountIdentifier,
+		*types.PartialBlockIdentifier,
+	) (*types.AccountBalanceResponse, error)
 
 	// PendingNonceAt(context.Context, common.Address) (uint64, error)
 
