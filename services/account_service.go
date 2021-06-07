@@ -19,7 +19,7 @@ import (
 
 	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 
-	// "github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/coinbase/rosetta-sdk-go/types"
 )
 
 // AccountAPIService implements the server.AccountAPIServicer interface.
@@ -39,26 +39,26 @@ func NewAccountAPIService(
 	}
 }
 
-// // AccountBalance implements /account/balance.
-// func (s *AccountAPIService) AccountBalance(
-// 	ctx context.Context,
-// 	request *types.AccountBalanceRequest,
-// ) (*types.AccountBalanceResponse, *types.Error) {
-// 	if s.config.Mode != configuration.Online {
-// 		return nil, ErrUnavailableOffline
-// 	}
+// AccountBalance implements /account/balance.
+func (s *AccountAPIService) AccountBalance(
+	ctx context.Context,
+	request *types.AccountBalanceRequest,
+) (*types.AccountBalanceResponse, *types.Error) {
+	if s.config.Mode != configuration.Online {
+		return nil, ErrUnavailableOffline
+	}
 
-// 	balanceResponse, err := s.client.Balance(
-// 		ctx,
-// 		request.AccountIdentifier,
-// 		request.BlockIdentifier,
-// 	)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrGeth, err)
-// 	}
+	balanceResponse, err := s.client.Balance(
+		ctx,
+		request.AccountIdentifier,
+		request.BlockIdentifier,
+	)
+	if err != nil {
+		return nil, wrapErr(ErrGeth, err)
+	}
 
-// 	return balanceResponse, nil
-// }
+	return balanceResponse, nil
+}
 
 // // AccountCoins implements /account/coins.
 // func (s *AccountAPIService) AccountCoins(
@@ -66,4 +66,4 @@ func NewAccountAPIService(
 // 	request *types.AccountCoinsRequest,
 // ) (*types.AccountCoinsResponse, *types.Error) {
 // 	return nil, wrapErr(ErrUnimplemented, nil)
-// }
+// }l

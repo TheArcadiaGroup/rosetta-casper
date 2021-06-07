@@ -1189,88 +1189,69 @@ func (ec *Client) BlockTransaction(
 // 	} `json:"data"`
 // }
 
-// // Balance returns the balance of a *RosettaTypes.AccountIdentifier
-// // at a *RosettaTypes.PartialBlockIdentifier.
-// //
-// // We must use graphql to get the balance atomically (the
-// // rpc method for balance does not allow for querying
-// // by block hash nor return the block hash where
-// // the balance was fetched).
-// func (ec *Client) Balance(
-// 	ctx context.Context,
-// 	account *RosettaTypes.AccountIdentifier,
-// 	block *RosettaTypes.PartialBlockIdentifier,
-// ) (*RosettaTypes.AccountBalanceResponse, error) {
-// 	blockQuery := ""
-// 	if block != nil {
-// 		if block.Hash != nil {
-// 			blockQuery = fmt.Sprintf(`hash: "%s"`, *block.Hash)
-// 		}
-// 		if block.Hash == nil && block.Index != nil {
-// 			blockQuery = fmt.Sprintf("number: %d", *block.Index)
-// 		}
-// 	}
+// Balance returns the balance of a *RosettaTypes.AccountIdentifier
+// at a *RosettaTypes.PartialBlockIdentifier.
+//
+// We must use graphql to get the balance atomically (the
+// rpc method for balance does not allow for querying
+// by block hash nor return the block hash where
+// the balance was fetched).
+func (ec *Client) Balance(
+	ctx context.Context,
+	account *RosettaTypes.AccountIdentifier,
+	block *RosettaTypes.PartialBlockIdentifier,
+) (*RosettaTypes.AccountBalanceResponse, error) {
+	var blockres CasperSDK.BlockResponse
+	var err error
+	if block != nil {
+		if block.Hash != nil {
+			blockres, err = ec.RpcClient.GetBlockByHash(*block.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}	
+		if block.Index != nil {
+			blockres, err = ec.RpcClient.GetBlockByHeight(uint64(*block.Index))
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not get block", err)
+			}	
+		}
+	}
+	blockres, err = ec.RpcClient.GetLatestBlock()
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get block", err)
+	}	
+	stateRootHash := blockres.Header.StateRootHash
+	publicKey := account.Address //"01ed9ad9b4b9b038717368eb1fc980ff50442f6ed7be4b47d8b497243b0b58e64c"
+	path := []string{""}
 
-// 	result, err := ec.g.Query(ctx, fmt.Sprintf(`{
-// 			block(%s){
-// 				hash
-// 				number
-// 				account(address:"%s"){
-// 					balance
-// 					transactionCount
-// 					code
-// 				}
-// 			}
-// 		}`, blockQuery, account.Address))
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	item, err := ec.RpcClient.GetStateItem(stateRootHash, publicKey, path)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get state item", err)
+	}	
+	balanceUref := item.Account.MainPurse
+	balance, err := ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
+	if err != nil {
+		return nil, fmt.Errorf("can't get account balance")
+	}
 
-// 	var bal graphqlBalance
-// 	if err := json.Unmarshal([]byte(result), &bal); err != nil {
-// 		return nil, err
-// 	}
-
-// 	if len(bal.Errors) > 0 {
-// 		return nil, errors.New(RosettaTypes.PrintStruct(bal.Errors))
-// 	}
-
-// 	blockIndex, ok := new(big.Int).SetString(bal.Data.Block.Number[2:], 16)
-// 	if !ok {
-// 		return nil, fmt.Errorf("could not extract block index from %s", bal.Data.Block.Number)
-// 	}
-// 	balance, ok := new(big.Int).SetString(bal.Data.Block.Account.Balance[2:], 16)
-// 	if !ok {
-// 		return nil, fmt.Errorf(
-// 			"could not extract account balance from %s",
-// 			bal.Data.Block.Account.Balance,
-// 		)
-// 	}
-// 	nonce, ok := new(big.Int).SetString(bal.Data.Block.Account.Nonce[2:], 16)
-// 	if !ok {
-// 		return nil, fmt.Errorf(
-// 			"could not extract account nonce from %s",
-// 			bal.Data.Block.Account.Nonce,
-// 		)
-// 	}
-
-// 	return &RosettaTypes.AccountBalanceResponse{
-// 		Balances: []*RosettaTypes.Amount{
-// 			{
-// 				Value:    balance.String(),
-// 				Currency: Currency,
-// 			},
-// 		},
-// 		BlockIdentifier: &RosettaTypes.BlockIdentifier{
-// 			Hash:  bal.Data.Block.Hash,
-// 			Index: blockIndex.Int64(),
-// 		},
-// 		Metadata: map[string]interface{}{
-// 			"nonce": nonce.Int64(),
-// 			"code":  bal.Data.Block.Account.Code,
-// 		},
-// 	}, nil
-// }
+	return &RosettaTypes.AccountBalanceResponse{
+		Balances: []*RosettaTypes.Amount{
+			{
+				Value:    balance.String(),
+				Currency: Currency,
+			},
+		},
+		BlockIdentifier: &RosettaTypes.BlockIdentifier{
+			Hash:  blockres.Hash,
+			Index: int64(blockres.Header.Height),
+		},
+		Metadata: map[string]interface{}{
+			// "nonce": nonce.Int64(),
+			// "code":  bal.Data.Block.Account.Code,
+		},
+	}, nil
+}
 
 // // GetTransactionReceiptInput is the input to the call
 // // method "eth_getTransactionReceipt".
