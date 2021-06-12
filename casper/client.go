@@ -83,7 +83,7 @@ func NewClient() (*Client, error) {
 	// if err != nil {
 	// 	return nil, fmt.Errorf("%w: unable to create GraphQL client", err)
 	// }
-	RpcClient := CasperSDK.NewRpcClient("http://155.138.175.136:7777/rpc")
+	RpcClient := CasperSDK.NewRpcClient("http://104.156.254.95:7777/rpc")
 	return &Client{RpcClient}, nil
 }
 
@@ -120,7 +120,7 @@ func (ec *Client) Status(ctx context.Context) (
 		rosetta_peers[i] = &RosettaTypes.Peer{
 			PeerID: peerInfo.Address,
 			Metadata: map[string]interface{}{
-				"Node ID":      peerInfo.NodeId,
+				"Node ID": peerInfo.NodeId,
 			},
 		}
 	}
@@ -219,29 +219,30 @@ func (ec *Client) Block(
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(*blockIdentifier.Hash)
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
-		}	
+			}
+		}
 		if blockIdentifier.Index != nil {
 			block, err = ec.RpcClient.GetBlockByHeight(uint64(*blockIdentifier.Index))
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
+			}
 
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(*blockIdentifier.Index))
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
+			}
 		}
 	}
+	if blockIdentifier == nil {
+		block, err = ec.RpcClient.GetLatestBlock()
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block", err)
+		}
 
-	block, err = ec.RpcClient.GetLatestBlock()
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not get block", err)
-	}	
-
-	block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not get block", err)
+		block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block", err)
+		}
 	}
 
 	BlockIdentifier := &RosettaTypes.BlockIdentifier{
@@ -272,7 +273,7 @@ func (ec *Client) Block(
 			// 	"receipt":   receiptMap,
 			// 	"trace":     traceMap,
 			// },
-		}		
+		}
 		Transactions[i+1] = populatedTransaction
 	}
 
@@ -296,22 +297,24 @@ func (ec *Client) BlockTransaction(
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(blockIdentifier.Hash)
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
-		}	
+			}
+		}
 		if blockIdentifier.Index != 0 {
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(blockIdentifier.Index))
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
+			}
 		}
 	}
-	block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not get block", err)
+	if blockIdentifier == nil {
+		block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block", err)
+		}
 	}
 	var transaction *RosettaTypes.Transaction
 	for _, tx := range block_transfers {
-		if *tx.ID == transactionIdentifier.Hash{
+		if *tx.ID == transactionIdentifier.Hash {
 			transaction = &RosettaTypes.Transaction{
 				TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
 					Hash: *tx.ID,
@@ -324,14 +327,10 @@ func (ec *Client) BlockTransaction(
 				// 	"trace":     traceMap,
 				// },
 			}
-		}		
+		}
 	}
 	return transaction, nil
 }
-
-
-
-
 
 // // Header returns a block header from the current canonical chain. If number is
 // // nil, the latest known header is returned.
@@ -1210,19 +1209,19 @@ func (ec *Client) Balance(
 			blockres, err = ec.RpcClient.GetBlockByHash(*block.Hash)
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
-		}	
+			}
+		}
 		if block.Index != nil {
 			blockres, err = ec.RpcClient.GetBlockByHeight(uint64(*block.Index))
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not get block", err)
-			}	
+			}
 		}
 	}
 	blockres, err = ec.RpcClient.GetLatestBlock()
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get block", err)
-	}	
+	}
 	stateRootHash := blockres.Header.StateRootHash
 	publicKey := account.Address //"01ed9ad9b4b9b038717368eb1fc980ff50442f6ed7be4b47d8b497243b0b58e64c"
 	path := []string{""}
@@ -1230,7 +1229,7 @@ func (ec *Client) Balance(
 	item, err := ec.RpcClient.GetStateItem(stateRootHash, publicKey, path)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get state item", err)
-	}	
+	}
 	balanceUref := item.Account.MainPurse
 	balance, err := ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
 	if err != nil {

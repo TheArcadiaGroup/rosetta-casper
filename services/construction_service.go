@@ -1,141 +1,94 @@
-// // Copyright 2020 Coinbase, Inc.
-// //
-// // Licensed under the Apache License, Version 2.0 (the "License");
-// // you may not use this file except in compliance with the License.
-// // You may obtain a copy of the License at
-// //
-// //      http://www.apache.org/licenses/LICENSE-2.0
-// //
-// // Unless required by applicable law or agreed to in writing, software
-// // distributed under the License is distributed on an "AS IS" BASIS,
-// // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// // See the License for the specific language governing permissions and
-// // limitations under the License.
+// Copyright 2020 Coinbase, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package services
 
-// import (
-// 	"context"
-// 	"encoding/json"
-// 	"fmt"
-// 	"math/big"
-// 	"strconv"
+import (
+	"context"
 
-// 	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
-// 	"github.com/TheArcadiaGroup/rosetta-casper/casper"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
+	"github.com/casper-ecosystem/casper-golang-sdk/keypair"
+	"github.com/casper-ecosystem/casper-golang-sdk/keypair/ed25519"
+	"github.com/casper-ecosystem/casper-golang-sdk/keypair/secp256k1"
 
-// 	"github.com/ethereum/go-ethereum/common"
-// 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-// 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/coinbase/rosetta-sdk-go/types"
+)
 
-// 	"github.com/coinbase/rosetta-sdk-go/parser"
-// 	"github.com/coinbase/rosetta-sdk-go/types"
-// )
+// ConstructionAPIService implements the server.ConstructionAPIServicer interface.
+type ConstructionAPIService struct {
+	config *configuration.Configuration
+	client Client
+}
 
-// // ConstructionAPIService implements the server.ConstructionAPIServicer interface.
-// type ConstructionAPIService struct {
-// 	config *configuration.Configuration
-// 	client Client
-// }
+// NewConstructionAPIService creates a new instance of a ConstructionAPIService.
+func NewConstructionAPIService(
+	cfg *configuration.Configuration,
+	client Client,
+) *ConstructionAPIService {
+	return &ConstructionAPIService{
+		config: cfg,
+		client: client,
+	}
+}
 
-// // NewConstructionAPIService creates a new instance of a ConstructionAPIService.
-// func NewConstructionAPIService(
-// 	cfg *configuration.Configuration,
-// 	client Client,
-// ) *ConstructionAPIService {
-// 	return &ConstructionAPIService{
-// 		config: cfg,
-// 		client: client,
-// 	}
-// }
+// ConstructionDerive implements the /construction/derive endpoint.
+func (s *ConstructionAPIService) ConstructionDerive(
+	ctx context.Context,
+	request *types.ConstructionDeriveRequest,
+) (*types.ConstructionDeriveResponse, *types.Error) {
+	resp := &types.ConstructionDeriveResponse{
+		AccountIdentifier: &types.AccountIdentifier{},
+	}
+	if request.PublicKey.CurveType == keypair.StrKeyTagEd25519 {
+		resp.AccountIdentifier.Address = ed25519.AccountHex(request.PublicKey.Bytes)
+	}
+	if request.PublicKey.CurveType == keypair.StrKeyTagSecp256k1 {
+		resp.AccountIdentifier.Address = secp256k1.AccountHex(request.PublicKey.Bytes)
+	}
+	return resp, nil
+}
 
-// // ConstructionDerive implements the /construction/derive endpoint.
-// func (s *ConstructionAPIService) ConstructionDerive(
-// 	ctx context.Context,
-// 	request *types.ConstructionDeriveRequest,
-// ) (*types.ConstructionDeriveResponse, *types.Error) {
-// 	pubkey, err := crypto.DecompressPubkey(request.PublicKey.Bytes)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToDecompressPubkey, err)
-// 	}
+// ConstructionPreprocess implements the /construction/preprocess
+// endpoint.
+func (s *ConstructionAPIService) ConstructionPreprocess(
+	ctx context.Context,
+	request *types.ConstructionPreprocessRequest,
+) (*types.ConstructionPreprocessResponse, *types.Error) {
+	preProcessResp := &types.ConstructionPreprocessResponse{
+		Options:            make(map[string]interface{}),
+		RequiredPublicKeys: []*types.AccountIdentifier{},
+	}
+	for _, operation := range request.Operations {
+		if operation.OperationIdentifier.Index == 0 {
+			preProcessResp.Options[SENDER_ADDR] = operation.Account.Address
+			preProcessResp.Options[AMOUNT] = operation.Amount.Value
+			sender := &types.AccountIdentifier{
+				Address: operation.Account.Address,
+			}
+			// to request sender public key, so we can remove pubKey from account identifier's meta data
+			preProcessResp.RequiredPublicKeys = append(preProcessResp.RequiredPublicKeys, sender)
+		}
+		if operation.OperationIdentifier.Index == 1 {
+			preProcessResp.Options[AMOUNT] = operation.Amount.Value
+			preProcessResp.Options[TO_ADDR] = operation.Account.Address
+		}
+	}
 
-// 	addr := crypto.PubkeyToAddress(*pubkey)
-// 	return &types.ConstructionDeriveResponse{
-// 		AccountIdentifier: &types.AccountIdentifier{
-// 			Address: addr.Hex(),
-// 		},
-// 	}, nil
-// }
-
-// // ConstructionPreprocess implements the /construction/preprocess
-// // endpoint.
-// func (s *ConstructionAPIService) ConstructionPreprocess(
-// 	ctx context.Context,
-// 	request *types.ConstructionPreprocessRequest,
-// ) (*types.ConstructionPreprocessResponse, *types.Error) {
-// 	descriptions := &parser.Descriptions{
-// 		OperationDescriptions: []*parser.OperationDescription{
-// 			{
-// 				Type: ethereum.CallOpType,
-// 				Account: &parser.AccountDescription{
-// 					Exists: true,
-// 				},
-// 				Amount: &parser.AmountDescription{
-// 					Exists:   true,
-// 					Sign:     parser.NegativeAmountSign,
-// 					Currency: ethereum.Currency,
-// 				},
-// 			},
-// 			{
-// 				Type: ethereum.CallOpType,
-// 				Account: &parser.AccountDescription{
-// 					Exists: true,
-// 				},
-// 				Amount: &parser.AmountDescription{
-// 					Exists:   true,
-// 					Sign:     parser.PositiveAmountSign,
-// 					Currency: ethereum.Currency,
-// 				},
-// 			},
-// 		},
-// 		ErrUnmatched: true,
-// 	}
-
-// 	matches, err := parser.MatchOperations(descriptions, request.Operations)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnclearIntent, err)
-// 	}
-
-// 	fromOp, _ := matches[0].First()
-// 	fromAdd := fromOp.Account.Address
-// 	toOp, _ := matches[1].First()
-// 	toAdd := toOp.Account.Address
-
-// 	// Ensure valid from address
-// 	checkFrom, ok := ethereum.ChecksumAddress(fromAdd)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", fromAdd))
-// 	}
-
-// 	// Ensure valid to address
-// 	_, ok = ethereum.ChecksumAddress(toAdd)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", toAdd))
-// 	}
-
-// 	preprocessOutput := &options{
-// 		From: checkFrom,
-// 	}
-
-// 	marshaled, err := marshalJSONMap(preprocessOutput)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
-
-// 	return &types.ConstructionPreprocessResponse{
-// 		Options: marshaled,
-// 	}, nil
-// }
+	preProcessResp.Options[GAS_PRICE] = GAS_PRICE_VALUE
+	preProcessResp.Options[GAS_LIMIT] = GAS_LIMIT_VALUE
+	return preProcessResp, nil
+}
 
 // // ConstructionMetadata implements the /construction/metadata endpoint.
 // func (s *ConstructionAPIService) ConstructionMetadata(

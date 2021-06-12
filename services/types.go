@@ -17,7 +17,7 @@ package services
 import (
 	"context"
 	// "encoding/json"
-	"math/big"
+	// "math/big"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
 	// "github.com/ethereum/go-ethereum/common"
@@ -64,19 +64,19 @@ type Client interface {
 	// ) (*types.CallResponse, error)
 }
 
-type options struct {
-	From string `json:"from"`
-}
+// type options struct {
+// 	From string `json:"from"`
+// }
 
-type metadata struct {
-	Nonce    uint64   `json:"nonce"`
-	GasPrice *big.Int `json:"gas_price"`
-}
+// type metadata struct {
+// 	Nonce    uint64   `json:"nonce"`
+// 	GasPrice *big.Int `json:"gas_price"`
+// }
 
-type metadataWire struct {
-	Nonce    string `json:"nonce"`
-	GasPrice string `json:"gas_price"`
-}
+// type metadataWire struct {
+// 	Nonce    string `json:"nonce"`
+// 	GasPrice string `json:"gas_price"`
+// }
 
 // func (m *metadata) MarshalJSON() ([]byte, error) {
 // 	mw := &metadataWire{
@@ -108,17 +108,17 @@ type metadataWire struct {
 // 	return nil
 // }
 
-type parseMetadata struct {
-	Nonce    uint64   `json:"nonce"`
-	GasPrice *big.Int `json:"gas_price"`
-	ChainID  *big.Int `json:"chain_id"`
-}
+// type parseMetadata struct {
+// 	Nonce    uint64   `json:"nonce"`
+// 	GasPrice *big.Int `json:"gas_price"`
+// 	ChainID  *big.Int `json:"chain_id"`
+// }
 
-type parseMetadataWire struct {
-	Nonce    string `json:"nonce"`
-	GasPrice string `json:"gas_price"`
-	ChainID  string `json:"chain_id"`
-}
+// type parseMetadataWire struct {
+// 	Nonce    string `json:"nonce"`
+// 	GasPrice string `json:"gas_price"`
+// 	ChainID  string `json:"chain_id"`
+// }
 
 // func (p *parseMetadata) MarshalJSON() ([]byte, error) {
 // 	pmw := &parseMetadataWire{
@@ -130,27 +130,45 @@ type parseMetadataWire struct {
 // 	return json.Marshal(pmw)
 // }
 
-type transaction struct {
-	From     string   `json:"from"`
-	To       string   `json:"to"`
-	Value    *big.Int `json:"value"`
-	Input    []byte   `json:"input"`
-	Nonce    uint64   `json:"nonce"`
-	GasPrice *big.Int `json:"gas_price"`
-	GasLimit uint64   `json:"gas"`
-	ChainID  *big.Int `json:"chain_id"`
-}
+// type transaction struct {
+// 	From     string   `json:"from"`
+// 	To       string   `json:"to"`
+// 	Value    *big.Int `json:"value"`
+// 	Input    []byte   `json:"input"`
+// 	Nonce    uint64   `json:"nonce"`
+// 	GasPrice *big.Int `json:"gas_price"`
+// 	GasLimit uint64   `json:"gas"`
+// 	ChainID  *big.Int `json:"chain_id"`
+// }
 
-type transactionWire struct {
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Value    string `json:"value"`
-	Input    string `json:"input"`
-	Nonce    string `json:"nonce"`
-	GasPrice string `json:"gas_price"`
-	GasLimit string `json:"gas"`
-	ChainID  string `json:"chain_id"`
-}
+
+
+
+// type Deploy struct {
+// 	Hash     	string `json:"hash"`
+// 	Header      DeployHeader `json:"header"`
+// 	Payment    	string `json:"payment"`
+// 	Session    	string `json:"session"`
+// 	Approvals   []Approval `json:"approvals"`
+// }
+
+// type DeployHeader struct {
+// 	Account     	string `json:"account"`
+// 	Timestamp   	time.Time `json:"timestamp"`
+// 	TTL    			string `json:"ttl"`
+// 	GasPrice    	int `json:"gas_price"`
+// 	BodyHash    	string `json:"body_hash"`
+// 	Dependencies    []string `json:"dependencies"`
+// 	ChainName    	string `json:"chain_name"`
+// }
+
+// type Approval struct {
+// 	Signer    string `json:"signer"`
+// 	Signature string `json:"signature"`
+// }
+
+
+
 
 // func (t *transaction) MarshalJSON() ([]byte, error) {
 // 	tw := &transactionWire{
