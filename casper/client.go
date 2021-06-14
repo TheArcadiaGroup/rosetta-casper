@@ -213,23 +213,25 @@ func (ec *Client) Block(
 		if blockIdentifier.Hash != nil {
 			block, err = ec.RpcClient.GetBlockByHash(*blockIdentifier.Hash)
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
+				return nil, fmt.Errorf("%w: could not get block by hash", err)
 			}
 
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(*blockIdentifier.Hash)
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
+				return nil, fmt.Errorf("%w: could not get block transfer by hash", err)
 			}
 		}
 		if blockIdentifier.Index != nil {
-			block, err = ec.RpcClient.GetBlockByHeight(uint64(*blockIdentifier.Index))
+			var index uint64
+			index = uint64(*blockIdentifier.Index)
+			block, err = ec.RpcClient.GetBlockByHeight(index)
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
+				return nil, fmt.Errorf("%w: could not get block by height", err)
 			}
 
 			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(*blockIdentifier.Index))
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
+				return nil, fmt.Errorf("%w: could not get block transfer by height", err)
 			}
 		}
 	}
@@ -1218,15 +1220,17 @@ func (ec *Client) Balance(
 			}
 		}
 	}
-	blockres, err = ec.RpcClient.GetLatestBlock()
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not get block", err)
+	if block == nil {
+		blockres, err = ec.RpcClient.GetLatestBlock()
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block", err)
+		}
 	}
 	stateRootHash := blockres.Header.StateRootHash
-	publicKey := account.Address //"01ed9ad9b4b9b038717368eb1fc980ff50442f6ed7be4b47d8b497243b0b58e64c"
-	path := []string{""}
+	key := "account-hash-" + account.Address //"account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
+	var path []string
 
-	item, err := ec.RpcClient.GetStateItem(stateRootHash, publicKey, path)
+	item, err := ec.RpcClient.GetStateItem(stateRootHash, key, path)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get state item", err)
 	}

@@ -60,10 +60,10 @@ func (s *AccountAPIService) AccountBalance(
 	return balanceResponse, nil
 }
 
-// // AccountCoins implements /account/coins.
-// func (s *AccountAPIService) AccountCoins(
-// 	ctx context.Context,
-// 	request *types.AccountCoinsRequest,
-// ) (*types.AccountCoinsResponse, *types.Error) {
-// 	return nil, wrapErr(ErrUnimplemented, nil)
-// }l
+// AccountCoins implements /account/coins.
+func (s *AccountAPIService) AccountCoins(
+	ctx context.Context,
+	request *types.AccountCoinsRequest,
+) (*types.AccountCoinsResponse, *types.Error) {
+	return nil, wrapErr(ErrUnimplemented, nil)
+}

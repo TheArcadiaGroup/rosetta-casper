@@ -18,8 +18,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 	"github.com/TheArcadiaGroup/rosetta-casper/casper"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
 )
