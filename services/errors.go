@@ -24,7 +24,6 @@ var (
 	Errors = []*types.Error{
 		ErrUnimplemented,
 		ErrUnavailableOffline,
-		ErrGeth,
 		ErrUnableToDecompressPubkey,
 		ErrUnclearIntent,
 		ErrUnableToParseIntermediateResult,
@@ -35,7 +34,6 @@ var (
 		ErrCallMethodInvalid,
 		ErrBlockOrphaned,
 		ErrInvalidAddress,
-		ErrGethNotReady,
 	}
 
 	// ErrUnimplemented is returned when an endpoint
@@ -52,11 +50,11 @@ var (
 		Message: "Endpoint unavailable offline",
 	}
 
-	// ErrGeth is returned when geth
+	// ErrRPCClient is returned when RPCClient
 	// errors on a request.
-	ErrGeth = &types.Error{
+	ErrRPCClient = &types.Error{
 		Code:    2, //nolint
-		Message: "geth error",
+		Message: "RPCClient error",
 	}
 
 	// ErrUnableToDecompressPubkey is returned when
@@ -137,11 +135,11 @@ var (
 		Message: "Invalid address",
 	}
 
-	// ErrGethNotReady is returned when geth
+	// ErrRPCClientNotReady is returned when geth
 	// cannot yet serve any queries.
-	ErrGethNotReady = &types.Error{
-		Code:      13, //nolint
-		Message:   "geth not ready",
+	ErrRPCClientNotReady = &types.Error{
+		Code:      13, //nolintss
+		Message:   "RPCClient not ready",
 		Retriable: true,
 	}
 )

@@ -15,13 +15,10 @@
 package services
 
 import (
-	// "context"
-	// "errors"
+	"context"
 
 	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
-	// "github.com/TheArcadiaGroup/rosetta-casper/casper"
-
-	// "github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/coinbase/rosetta-sdk-go/types"
 )
 
 // CallAPIService implements the server.CallAPIServicer interface.
@@ -38,28 +35,10 @@ func NewCallAPIService(cfg *configuration.Configuration, client Client) *CallAPI
 	}
 }
 
-// // Call implements the /call endpoint.
-// func (s *CallAPIService) Call(
-// 	ctx context.Context,
-// 	request *types.CallRequest,
-// ) (*types.CallResponse, *types.Error) {
-// 	if s.config.Mode != configuration.Online {
-// 		return nil, ErrUnavailableOffline
-// 	}
-
-// 	response, err := s.client.Call(ctx, request)
-// 	if errors.Is(err, casper.ErrCallParametersInvalid) {
-// 		return nil, wrapErr(ErrCallParametersInvalid, err)
-// 	}
-// 	if errors.Is(err, casper.ErrCallOutputMarshal) {
-// 		return nil, wrapErr(ErrCallOutputMarshal, err)
-// 	}
-// 	if errors.Is(err, casper.ErrCallMethodInvalid) {
-// 		return nil, wrapErr(ErrCallMethodInvalid, err)
-// 	}
-// 	if err != nil {
-// 		return nil, wrapErr(ErrGeth, err)
-// 	}
-
-// 	return response, nil
-// }
+// Call implements the /call endpoint.
+func (s *CallAPIService) Call(
+	ctx context.Context,
+	request *types.CallRequest,
+) (*types.CallResponse, *types.Error) {
+	return nil, wrapErr(ErrUnimplemented, nil)
+}

@@ -16,13 +16,8 @@ package services
 
 import (
 	"context"
-	// "encoding/json"
-	// "math/big"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/common/hexutil"
-	// ethTypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 // Client is used by the servicers to get block
@@ -140,35 +135,6 @@ type Client interface {
 // 	GasLimit uint64   `json:"gas"`
 // 	ChainID  *big.Int `json:"chain_id"`
 // }
-
-
-
-
-// type Deploy struct {
-// 	Hash     	string `json:"hash"`
-// 	Header      DeployHeader `json:"header"`
-// 	Payment    	string `json:"payment"`
-// 	Session    	string `json:"session"`
-// 	Approvals   []Approval `json:"approvals"`
-// }
-
-// type DeployHeader struct {
-// 	Account     	string `json:"account"`
-// 	Timestamp   	time.Time `json:"timestamp"`
-// 	TTL    			string `json:"ttl"`
-// 	GasPrice    	int `json:"gas_price"`
-// 	BodyHash    	string `json:"body_hash"`
-// 	Dependencies    []string `json:"dependencies"`
-// 	ChainName    	string `json:"chain_name"`
-// }
-
-// type Approval struct {
-// 	Signer    string `json:"signer"`
-// 	Signature string `json:"signature"`
-// }
-
-
-
 
 // func (t *transaction) MarshalJSON() ([]byte, error) {
 // 	tw := &transactionWire{

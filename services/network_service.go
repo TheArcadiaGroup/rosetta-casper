@@ -17,8 +17,8 @@ package services
 import (
 	"context"
 
-	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 	"github.com/TheArcadiaGroup/rosetta-casper/casper"
+	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 
 	"github.com/coinbase/rosetta-sdk-go/asserter"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -83,11 +83,11 @@ func (s *NetworkAPIService) NetworkStatus(
 
 	currentBlock, currentTime, peers, err := s.client.Status(ctx)
 	if err != nil {
-		return nil, wrapErr(ErrGeth, err)
+		return nil, wrapErr(ErrRPCClient, err)
 	}
 
 	if currentTime < asserter.MinUnixEpoch {
-		return nil, ErrGethNotReady
+		return nil, ErrRPCClientNotReady
 	}
 
 	return &types.NetworkStatusResponse{

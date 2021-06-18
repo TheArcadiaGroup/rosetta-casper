@@ -18,16 +18,6 @@ import (
 	"encoding/json"
 )
 
-const (
-	AMOUNT          = "amount"
-	GAS_LIMIT       = "gasLimit"
-	GAS_PRICE       = "gasPrice"
-	TO_ADDR         = "toAddr"
-	SENDER_ADDR     = "senderAddr"
-	GAS_LIMIT_VALUE = "1"
-	GAS_PRICE_VALUE = "2000000000"
-)
-
 // *JSONMap functions are needed because `types.MarshalMap/types.UnmarshalMap`
 // does not respect custom JSON marshalers.
 

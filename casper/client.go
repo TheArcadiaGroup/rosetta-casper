@@ -16,30 +16,12 @@ package casper
 
 import (
 	"context"
-	// "encoding/json"
-	// "errors"
 	"fmt"
-	// "log"
-	// "math/big"
-	// "net/http"
-	// "strconv"
 	"time"
 
 	CasperSDK "github.com/casper-ecosystem/casper-golang-sdk/sdk"
 
-	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
-	// "github.com/ethereum/go-ethereum"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/common/hexutil"
-	// "github.com/ethereum/go-ethereum/consensus/ethash"
-	// "github.com/ethereum/go-ethereum/core/types"
-	// EthTypes "github.com/ethereum/go-ethereum/core/types"
-	// "github.com/ethereum/go-ethereum/eth"
-	// "github.com/ethereum/go-ethereum/p2p"
-	// "github.com/ethereum/go-ethereum/params"
-	// "github.com/ethereum/go-ethereum/rlp"
-	// "github.com/ethereum/go-ethereum/rpc"
-	// "golang.org/x/sync/semaphore"
+	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types""
 )
 
 const (
@@ -49,54 +31,17 @@ const (
 	semaphoreTraceWeight = int64(1)  // nolint:gomnd
 )
 
-// Client allows for querying a set of specific Ethereum endpoints in an
-// idempotent manner. Client relies on the eth_*, debug_*, and admin_*
-// methods and on the graphql endpoint.
-//
-// Client borrows HEAVILY from https://github.com/ethereum/go-ethereum/tree/master/ethclient.
 type Client struct {
-	// p  *params.ChainConfig
-	// tc *eth.TraceConfig
-
-	// c JSONRPC
-	// g GraphQL
-
-	// traceSemaphore *semaphore.Weighted
 	RpcClient *CasperSDK.RpcClient
 }
 
 // NewClient creates a Client that from the provided url and params.
 func NewClient() (*Client, error) {
-	// c, err := rpc.DialHTTPWithClient(url, &http.Client{
-	// 	Timeout: gethHTTPTimeout,
-	// })
-	// if err != nil {
-	// 	return nil, fmt.Errorf("%w: unable to dial node", err)
-	// }
-
-	// tc, err := loadTraceConfig()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("%w: unable to load trace config", err)
-	// }
-
-	// g, err := newGraphQLClient(url)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("%w: unable to create GraphQL client", err)
-	// }
 	RpcClient := CasperSDK.NewRpcClient("http://104.156.254.95:7777/rpc")
 	return &Client{RpcClient}, nil
 }
 
-// func NewRpcClient() *CasperSDK.RpcClient {
-// 	return CasperSDK.NewRpcClient("http://155.138.175.136:7777/rpc")
-// }
-
-// // Close shuts down the RPC client connection.
-// func (ec *Client) Close() {
-// 	ec.c.Close()
-// }
-
-// Status returns geth status information
+// Status returns status information
 // for determining node healthiness.
 func (ec *Client) Status(ctx context.Context) (
 	*RosettaTypes.BlockIdentifier,
@@ -104,7 +49,6 @@ func (ec *Client) Status(ctx context.Context) (
 	[]*RosettaTypes.Peer,
 	error,
 ) {
-	// RpcClient := NewRpcClient()
 	blockres, err := ec.RpcClient.GetLatestBlock()
 	if err != nil {
 		return nil, -1, nil, err
@@ -262,7 +206,7 @@ func (ec *Client) Block(
 		[]*RosettaTypes.Transaction,
 		len(block_transfers),
 	)
-
+	ops := []*RosettaTypes.Operation{}
 	for i, tx := range block_transfers {
 		populatedTransaction := &RosettaTypes.Transaction{
 			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
@@ -1251,10 +1195,7 @@ func (ec *Client) Balance(
 			Hash:  blockres.Hash,
 			Index: int64(blockres.Header.Height),
 		},
-		Metadata: map[string]interface{}{
-			// "nonce": nonce.Int64(),
-			// "code":  bal.Data.Block.Account.Code,
-		},
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 

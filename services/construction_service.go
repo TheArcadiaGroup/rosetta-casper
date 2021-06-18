@@ -16,12 +16,15 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
 
 	"github.com/TheArcadiaGroup/rosetta-casper/configuration"
 	"github.com/casper-ecosystem/casper-golang-sdk/keypair"
 	"github.com/casper-ecosystem/casper-golang-sdk/keypair/ed25519"
 	"github.com/casper-ecosystem/casper-golang-sdk/keypair/secp256k1"
 
+	"github.com/TheArcadiaGroup/rosetta-casper/casper/casper_client_sdk"
 	"github.com/coinbase/rosetta-sdk-go/types"
 )
 
@@ -30,6 +33,16 @@ type ConstructionAPIService struct {
 	config *configuration.Configuration
 	client Client
 }
+
+const (
+	CHAIN_NAME      = "Chain Name"
+	TRANSFER_AMOUNT = "Transfer Amount"
+	PAYMENT_AMOUNT  = "Payment Amount"
+	TARGET_ADDR     = "Target ADDR"
+	SRC_ADDR        = "Source ADDR"
+	GAS_PRICE       = "Gas Price"
+	TRANSFER_ID     = "Transfer ID"
+)
 
 // NewConstructionAPIService creates a new instance of a ConstructionAPIService.
 func NewConstructionAPIService(
@@ -69,10 +82,11 @@ func (s *ConstructionAPIService) ConstructionPreprocess(
 		Options:            make(map[string]interface{}),
 		RequiredPublicKeys: []*types.AccountIdentifier{},
 	}
+	preProcessResp.Options[CHAIN_NAME] = request.NetworkIdentifier.Network
 	for _, operation := range request.Operations {
 		if operation.OperationIdentifier.Index == 0 {
-			preProcessResp.Options[SENDER_ADDR] = operation.Account.Address
-			preProcessResp.Options[AMOUNT] = operation.Amount.Value
+			preProcessResp.Options[SRC_ADDR] = operation.Account.Address
+			// preProcessResp.Options[TRANSFER_AMOUNT] = operation.Amount.Value
 			sender := &types.AccountIdentifier{
 				Address: operation.Account.Address,
 			}
@@ -80,358 +94,255 @@ func (s *ConstructionAPIService) ConstructionPreprocess(
 			preProcessResp.RequiredPublicKeys = append(preProcessResp.RequiredPublicKeys, sender)
 		}
 		if operation.OperationIdentifier.Index == 1 {
-			preProcessResp.Options[AMOUNT] = operation.Amount.Value
-			preProcessResp.Options[TO_ADDR] = operation.Account.Address
+			preProcessResp.Options[TRANSFER_AMOUNT] = operation.Amount.Value
+			preProcessResp.Options[TARGET_ADDR] = operation.Account.Address
+			preProcessResp.Options[TRANSFER_ID] = operation.Metadata[TRANSFER_ID]
 		}
 	}
+	preProcessResp.Options[GAS_PRICE] = "1"
+	preProcessResp.Options[PAYMENT_AMOUNT] = request.MaxFee[0].Value
 
-	preProcessResp.Options[GAS_PRICE] = GAS_PRICE_VALUE
-	preProcessResp.Options[GAS_LIMIT] = GAS_LIMIT_VALUE
 	return preProcessResp, nil
 }
 
-// // ConstructionMetadata implements the /construction/metadata endpoint.
-// func (s *ConstructionAPIService) ConstructionMetadata(
-// 	ctx context.Context,
-// 	request *types.ConstructionMetadataRequest,
-// ) (*types.ConstructionMetadataResponse, *types.Error) {
-// 	if s.config.Mode != configuration.Online {
-// 		return nil, ErrUnavailableOffline
-// 	}
+// ConstructionMetadata implements the /construction/metadata endpoint.
+func (s *ConstructionAPIService) ConstructionMetadata(
+	ctx context.Context,
+	request *types.ConstructionMetadataRequest,
+) (*types.ConstructionMetadataResponse, *types.Error) {
+	if s.config.Mode != configuration.Online {
+		return nil, ErrUnavailableOffline
+	}
 
-// 	var input options
-// 	if err := unmarshalJSONMap(request.Options, &input); err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+	resp := &types.ConstructionMetadataResponse{
+		Metadata:     make(map[string]interface{}),
+		SuggestedFee: []*types.Amount{},
+	}
 
-// 	nonce, err := s.client.PendingNonceAt(ctx, common.HexToAddress(input.From))
-// 	if err != nil {
-// 		return nil, wrapErr(ErrGeth, err)
-// 	}
-// 	gasPrice, err := s.client.SuggestGasPrice(ctx)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrGeth, err)
-// 	}
+	resp.Metadata[CHAIN_NAME] = request.Options[CHAIN_NAME]
+	resp.Metadata[TRANSFER_AMOUNT] = request.Options[TRANSFER_AMOUNT]
+	resp.Metadata[TARGET_ADDR] = request.Options[TARGET_ADDR]
+	resp.Metadata[SRC_ADDR] = request.Options[SRC_ADDR]
+	resp.Metadata[GAS_PRICE] = request.Options[GAS_PRICE]
+	resp.Metadata[PAYMENT_AMOUNT] = request.Options[PAYMENT_AMOUNT]
+	resp.Metadata[TRANSFER_ID] = request.Options[TRANSFER_ID]
 
-// 	metadata := &metadata{
-// 		Nonce:    nonce,
-// 		GasPrice: gasPrice,
-// 	}
+	return resp, nil
+}
 
-// 	metadataMap, err := marshalJSONMap(metadata)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+// ConstructionPayloads implements the /construction/payloads endpoint.
+func (s *ConstructionAPIService) ConstructionPayloads(
+	ctx context.Context,
+	request *types.ConstructionPayloadsRequest,
+) (*types.ConstructionPayloadsResponse, *types.Error) {
+	resp := new(types.ConstructionPayloadsResponse)
+	payloads := make([]*types.SigningPayload, 0)
+	transfer_id, err := strconv.ParseInt(request.Metadata[TRANSFER_ID].(string), 10, 64)
+	if err != nil {
+		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	}
+	deployParams := &casper_client_sdk.DeployParams{
+		ChainName:      request.Metadata[CHAIN_NAME].(string),
+		TransferAmount: request.Metadata[TRANSFER_AMOUNT].(string),
+		PaymentAmount:  request.Metadata[PAYMENT_AMOUNT].(string),
+		TargetAccount:  request.Metadata[TARGET_ADDR].(string),
+		SrcAccount:     request.Metadata[SRC_ADDR].(string),
+		GasPrice:       request.Metadata[GAS_PRICE].(string),
+		TransferID:     transfer_id,
+	}
+	unsignTransferJson, err := json.Marshal(casper_client_sdk.NewDeploy(*deployParams))
+	if err != nil {
+		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	}
+	resp.UnsignedTransaction = string(unsignTransferJson)
+	targetAccount := &types.AccountIdentifier{
+		Address: request.Metadata[TARGET_ADDR].(string),
+		// Metadata: map[string]interface{}{
+		// 	rosettaUtil.Base16: rosettaUtil.ToChecksumAddr(transactionJson[rosettaUtil.SENDER_ADDR].(string)),
+		// },
+	}
+	signingPayload := &types.SigningPayload{
+		AccountIdentifier: targetAccount,
+		// Bytes:             unsignedByte, //byte array of transaction
+		// SignatureType:     rosettaUtil.SIGNATURE_TYPE,
+	}
+	payloads = append(payloads, signingPayload)
+	resp.Payloads = payloads
 
-// 	// Find suggested gas usage
-// 	suggestedFee := metadata.GasPrice.Int64() * ethereum.TransferGasLimit
+	return resp, nil
+}
 
-// 	return &types.ConstructionMetadataResponse{
-// 		Metadata: metadataMap,
-// 		SuggestedFee: []*types.Amount{
-// 			{
-// 				Value:    strconv.FormatInt(suggestedFee, 10),
-// 				Currency: ethereum.Currency,
-// 			},
-// 		},
-// 	}, nil
-// }
+// ConstructionCombine implements the /construction/combine
+// endpoint.
+func (s *ConstructionAPIService) ConstructionCombine(
+	ctx context.Context,
+	request *types.ConstructionCombineRequest,
+) (*types.ConstructionCombineResponse, *types.Error) {
+	var unsignedTx casper_client_sdk.Deploy
+	if err := json.Unmarshal([]byte(request.UnsignedTransaction), &unsignedTx); err != nil {
+		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	}
 
-// // ConstructionPayloads implements the /construction/payloads endpoint.
-// func (s *ConstructionAPIService) ConstructionPayloads(
-// 	ctx context.Context,
-// 	request *types.ConstructionPayloadsRequest,
-// ) (*types.ConstructionPayloadsResponse, *types.Error) {
-// 	descriptions := &parser.Descriptions{
-// 		OperationDescriptions: []*parser.OperationDescription{
-// 			{
-// 				Type: ethereum.CallOpType,
-// 				Account: &parser.AccountDescription{
-// 					Exists: true,
-// 				},
-// 				Amount: &parser.AmountDescription{
-// 					Exists:   true,
-// 					Sign:     parser.NegativeAmountSign,
-// 					Currency: ethereum.Currency,
-// 				},
-// 			},
-// 			{
-// 				Type: ethereum.CallOpType,
-// 				Account: &parser.AccountDescription{
-// 					Exists: true,
-// 				},
-// 				Amount: &parser.AmountDescription{
-// 					Exists:   true,
-// 					Sign:     parser.PositiveAmountSign,
-// 					Currency: ethereum.Currency,
-// 				},
-// 			},
-// 		},
-// 		ErrUnmatched: true,
-// 	}
-// 	matches, err := parser.MatchOperations(descriptions, request.Operations)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnclearIntent, err)
-// 	}
+	return &types.ConstructionCombineResponse{
+		// SignedTransactiosn: string(signedTxJSON),
+	}, nil
+}
 
-// 	// Convert map to Metadata struct
-// 	var metadata metadata
-// 	if err := unmarshalJSONMap(request.Metadata, &metadata); err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+// ConstructionHash implements the /construction/hash endpoint.
+func (s *ConstructionAPIService) ConstructionHash(
+	ctx context.Context,
+	request *types.ConstructionHashRequest,
+) (*types.TransactionIdentifierResponse, *types.Error) {
+	// signedTx := ethTypes.Transaction{}
+	// if err := signedTx.UnmarshalJSON([]byte(request.SignedTransaction)); err != nil {
+	// 	return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// }
 
-// 	// Required Fields for constructing a real Ethereum transaction
-// 	toOp, amount := matches[1].First()
-// 	toAdd := toOp.Account.Address
-// 	nonce := metadata.Nonce
-// 	gasPrice := metadata.GasPrice
-// 	chainID := s.config.Params.ChainID
-// 	transferGasLimit := uint64(ethereum.TransferGasLimit)
-// 	transferData := []byte{}
+	// hash := signedTx.Hash().Hex()
 
-// 	// Additional Fields for constructing custom Ethereum tx struct
-// 	fromOp, _ := matches[0].First()
-// 	fromAdd := fromOp.Account.Address
+	// return &types.TransactionIdentifierResponse{
+	// 	TransactionIdentifier: &types.TransactionIdentifier{
+	// 		Hash: hash,
+	// 	},
+	// }, nil
+	return nil, wrapErr(ErrUnimplemented, nil)
+}
 
-// 	// Ensure valid from address
-// 	checkFrom, ok := ethereum.ChecksumAddress(fromAdd)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", fromAdd))
-// 	}
+// ConstructionParse implements the /construction/parse endpoint.
+func (s *ConstructionAPIService) ConstructionParse(
+	ctx context.Context,
+	request *types.ConstructionParseRequest,
+) (*types.ConstructionParseResponse, *types.Error) {
+	// var tx transaction
+	// if !request.Signed {
+	// 	err := json.Unmarshal([]byte(request.Transaction), &tx)
+	// 	if err != nil {
+	// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// 	}
+	// } else {
+	// 	t := new(ethTypes.Transaction)
+	// 	err := t.UnmarshalJSON([]byte(request.Transaction))
+	// 	if err != nil {
+	// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// 	}
 
-// 	// Ensure valid to address
-// 	checkTo, ok := ethereum.ChecksumAddress(toAdd)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", toAdd))
-// 	}
+	// 	tx.To = t.To().String()
+	// 	tx.Value = t.Value()
+	// 	tx.Input = t.Data()
+	// 	tx.Nonce = t.Nonce()
+	// 	tx.GasPrice = t.GasPrice()
+	// 	tx.GasLimit = t.Gas()
+	// 	tx.ChainID = t.ChainId()
 
-// 	tx := ethTypes.NewTransaction(
-// 		nonce,
-// 		common.HexToAddress(checkTo),
-// 		amount,
-// 		transferGasLimit,
-// 		gasPrice,
-// 		transferData,
-// 	)
+	// 	msg, err := t.AsMessage(ethTypes.NewEIP155Signer(t.ChainId()))
+	// 	if err != nil {
+	// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// 	}
 
-// 	unsignedTx := &transaction{
-// 		From:     checkFrom,
-// 		To:       checkTo,
-// 		Value:    amount,
-// 		Input:    tx.Data(),
-// 		Nonce:    tx.Nonce(),
-// 		GasPrice: gasPrice,
-// 		GasLimit: tx.Gas(),
-// 		ChainID:  chainID,
-// 	}
+	// 	tx.From = msg.From().Hex()
+	// }
 
-// 	// Construct SigningPayload
-// 	signer := ethTypes.NewEIP155Signer(chainID)
-// 	payload := &types.SigningPayload{
-// 		AccountIdentifier: &types.AccountIdentifier{Address: checkFrom},
-// 		Bytes:             signer.Hash(tx).Bytes(),
-// 		SignatureType:     types.EcdsaRecovery,
-// 	}
+	// // Ensure valid from address
+	// checkFrom, ok := ethereum.ChecksumAddress(tx.From)
+	// if !ok {
+	// 	return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", tx.From))
+	// }
 
-// 	unsignedTxJSON, err := json.Marshal(unsignedTx)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+	// // Ensure valid to address
+	// checkTo, ok := ethereum.ChecksumAddress(tx.To)
+	// if !ok {
+	// 	return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", tx.To))
+	// }
 
-// 	return &types.ConstructionPayloadsResponse{
-// 		UnsignedTransaction: string(unsignedTxJSON),
-// 		Payloads:            []*types.SigningPayload{payload},
-// 	}, nil
-// }
+	// ops := []*types.Operation{
+	// 	{
+	// 		Type: ethereum.CallOpType,
+	// 		OperationIdentifier: &types.OperationIdentifier{
+	// 			Index: 0,
+	// 		},
+	// 		Account: &types.AccountIdentifier{
+	// 			Address: checkFrom,
+	// 		},
+	// 		Amount: &types.Amount{
+	// 			Value:    new(big.Int).Neg(tx.Value).String(),
+	// 			Currency: ethereum.Currency,
+	// 		},
+	// 	},
+	// 	{
+	// 		Type: ethereum.CallOpType,
+	// 		OperationIdentifier: &types.OperationIdentifier{
+	// 			Index: 1,
+	// 		},
+	// 		RelatedOperations: []*types.OperationIdentifier{
+	// 			{
+	// 				Index: 0,
+	// 			},
+	// 		},
+	// 		Account: &types.AccountIdentifier{
+	// 			Address: checkTo,
+	// 		},
+	// 		Amount: &types.Amount{
+	// 			Value:    tx.Value.String(),
+	// 			Currency: ethereum.Currency,
+	// 		},
+	// 	},
+	// }
 
-// // ConstructionCombine implements the /construction/combine
-// // endpoint.
-// func (s *ConstructionAPIService) ConstructionCombine(
-// 	ctx context.Context,
-// 	request *types.ConstructionCombineRequest,
-// ) (*types.ConstructionCombineResponse, *types.Error) {
-// 	var unsignedTx transaction
-// 	if err := json.Unmarshal([]byte(request.UnsignedTransaction), &unsignedTx); err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+	// metadata := &parseMetadata{
+	// 	Nonce:    tx.Nonce,
+	// 	GasPrice: tx.GasPrice,
+	// 	ChainID:  tx.ChainID,
+	// }
+	// metaMap, err := marshalJSONMap(metadata)
+	// if err != nil {
+	// 	return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// }
 
-// 	ethTransaction := ethTypes.NewTransaction(
-// 		unsignedTx.Nonce,
-// 		common.HexToAddress(unsignedTx.To),
-// 		unsignedTx.Value,
-// 		unsignedTx.GasLimit,
-// 		unsignedTx.GasPrice,
-// 		unsignedTx.Input,
-// 	)
+	// var resp *types.ConstructionParseResponse
+	// if request.Signed {
+	// 	resp = &types.ConstructionParseResponse{
+	// 		Operations: ops,
+	// 		AccountIdentifierSigners: []*types.AccountIdentifier{
+	// 			{
+	// 				Address: checkFrom,
+	// 			},
+	// 		},
+	// 		Metadata: metaMap,
+	// 	}
+	// } else {
+	// 	resp = &types.ConstructionParseResponse{
+	// 		Operations:               ops,
+	// 		AccountIdentifierSigners: []*types.AccountIdentifier{},
+	// 		Metadata:                 metaMap,
+	// 	}
+	// }
+	// return resp, nil
+	return nil, wrapErr(ErrUnimplemented, nil)
+}
 
-// 	signer := ethTypes.NewEIP155Signer(unsignedTx.ChainID)
-// 	signedTx, err := ethTransaction.WithSignature(signer, request.Signatures[0].Bytes)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrSignatureInvalid, err)
-// 	}
+// ConstructionSubmit implements the /construction/submit endpoint.
+func (s *ConstructionAPIService) ConstructionSubmit(
+	ctx context.Context,
+	request *types.ConstructionSubmitRequest,
+) (*types.TransactionIdentifierResponse, *types.Error) {
+	// if s.config.Mode != configuration.Online {
+	// 	return nil, ErrUnavailableOffline
+	// }
 
-// 	signedTxJSON, err := signedTx.MarshalJSON()
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
+	// var signedTx ethTypes.Transaction
+	// if err := signedTx.UnmarshalJSON([]byte(request.SignedTransaction)); err != nil {
+	// 	return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
+	// }
 
-// 	return &types.ConstructionCombineResponse{
-// 		SignedTransaction: string(signedTxJSON),
-// 	}, nil
-// }
+	// if err := s.client.SendTransaction(ctx, &signedTx); err != nil {
+	// 	return nil, wrapErr(ErrBroadcastFailed, err)
+	// }
 
-// // ConstructionHash implements the /construction/hash endpoint.
-// func (s *ConstructionAPIService) ConstructionHash(
-// 	ctx context.Context,
-// 	request *types.ConstructionHashRequest,
-// ) (*types.TransactionIdentifierResponse, *types.Error) {
-// 	signedTx := ethTypes.Transaction{}
-// 	if err := signedTx.UnmarshalJSON([]byte(request.SignedTransaction)); err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
-
-// 	hash := signedTx.Hash().Hex()
-
-// 	return &types.TransactionIdentifierResponse{
-// 		TransactionIdentifier: &types.TransactionIdentifier{
-// 			Hash: hash,
-// 		},
-// 	}, nil
-// }
-
-// // ConstructionParse implements the /construction/parse endpoint.
-// func (s *ConstructionAPIService) ConstructionParse(
-// 	ctx context.Context,
-// 	request *types.ConstructionParseRequest,
-// ) (*types.ConstructionParseResponse, *types.Error) {
-// 	var tx transaction
-// 	if !request.Signed {
-// 		err := json.Unmarshal([]byte(request.Transaction), &tx)
-// 		if err != nil {
-// 			return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 		}
-// 	} else {
-// 		t := new(ethTypes.Transaction)
-// 		err := t.UnmarshalJSON([]byte(request.Transaction))
-// 		if err != nil {
-// 			return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 		}
-
-// 		tx.To = t.To().String()
-// 		tx.Value = t.Value()
-// 		tx.Input = t.Data()
-// 		tx.Nonce = t.Nonce()
-// 		tx.GasPrice = t.GasPrice()
-// 		tx.GasLimit = t.Gas()
-// 		tx.ChainID = t.ChainId()
-
-// 		msg, err := t.AsMessage(ethTypes.NewEIP155Signer(t.ChainId()))
-// 		if err != nil {
-// 			return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 		}
-
-// 		tx.From = msg.From().Hex()
-// 	}
-
-// 	// Ensure valid from address
-// 	checkFrom, ok := ethereum.ChecksumAddress(tx.From)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", tx.From))
-// 	}
-
-// 	// Ensure valid to address
-// 	checkTo, ok := ethereum.ChecksumAddress(tx.To)
-// 	if !ok {
-// 		return nil, wrapErr(ErrInvalidAddress, fmt.Errorf("%s is not a valid address", tx.To))
-// 	}
-
-// 	ops := []*types.Operation{
-// 		{
-// 			Type: ethereum.CallOpType,
-// 			OperationIdentifier: &types.OperationIdentifier{
-// 				Index: 0,
-// 			},
-// 			Account: &types.AccountIdentifier{
-// 				Address: checkFrom,
-// 			},
-// 			Amount: &types.Amount{
-// 				Value:    new(big.Int).Neg(tx.Value).String(),
-// 				Currency: ethereum.Currency,
-// 			},
-// 		},
-// 		{
-// 			Type: ethereum.CallOpType,
-// 			OperationIdentifier: &types.OperationIdentifier{
-// 				Index: 1,
-// 			},
-// 			RelatedOperations: []*types.OperationIdentifier{
-// 				{
-// 					Index: 0,
-// 				},
-// 			},
-// 			Account: &types.AccountIdentifier{
-// 				Address: checkTo,
-// 			},
-// 			Amount: &types.Amount{
-// 				Value:    tx.Value.String(),
-// 				Currency: ethereum.Currency,
-// 			},
-// 		},
-// 	}
-
-// 	metadata := &parseMetadata{
-// 		Nonce:    tx.Nonce,
-// 		GasPrice: tx.GasPrice,
-// 		ChainID:  tx.ChainID,
-// 	}
-// 	metaMap, err := marshalJSONMap(metadata)
-// 	if err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
-
-// 	var resp *types.ConstructionParseResponse
-// 	if request.Signed {
-// 		resp = &types.ConstructionParseResponse{
-// 			Operations: ops,
-// 			AccountIdentifierSigners: []*types.AccountIdentifier{
-// 				{
-// 					Address: checkFrom,
-// 				},
-// 			},
-// 			Metadata: metaMap,
-// 		}
-// 	} else {
-// 		resp = &types.ConstructionParseResponse{
-// 			Operations:               ops,
-// 			AccountIdentifierSigners: []*types.AccountIdentifier{},
-// 			Metadata:                 metaMap,
-// 		}
-// 	}
-// 	return resp, nil
-// }
-
-// // ConstructionSubmit implements the /construction/submit endpoint.
-// func (s *ConstructionAPIService) ConstructionSubmit(
-// 	ctx context.Context,
-// 	request *types.ConstructionSubmitRequest,
-// ) (*types.TransactionIdentifierResponse, *types.Error) {
-// 	if s.config.Mode != configuration.Online {
-// 		return nil, ErrUnavailableOffline
-// 	}
-
-// 	var signedTx ethTypes.Transaction
-// 	if err := signedTx.UnmarshalJSON([]byte(request.SignedTransaction)); err != nil {
-// 		return nil, wrapErr(ErrUnableToParseIntermediateResult, err)
-// 	}
-
-// 	if err := s.client.SendTransaction(ctx, &signedTx); err != nil {
-// 		return nil, wrapErr(ErrBroadcastFailed, err)
-// 	}
-
-// 	txIdentifier := &types.TransactionIdentifier{
-// 		Hash: signedTx.Hash().Hex(),
-// 	}
-// 	return &types.TransactionIdentifierResponse{
-// 		TransactionIdentifier: txIdentifier,
-// 	}, nil
-// }
+	// txIdentifier := &types.TransactionIdentifier{
+	// 	Hash: signedTx.Hash().Hex(),
+	// }
+	// return &types.TransactionIdentifierResponse{
+	// 	TransactionIdentifier: txIdentifier,
+	// }, nil
+	return nil, wrapErr(ErrUnimplemented, nil)
+}

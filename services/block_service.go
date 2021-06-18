@@ -55,7 +55,7 @@ func (s *BlockAPIService) Block(
 		return nil, wrapErr(ErrBlockOrphaned, err)
 	}
 	if err != nil {
-		return nil, wrapErr(ErrGeth, err)
+		return nil, wrapErr(ErrRPCClient, err)
 	}
 
 	return &types.BlockResponse{
@@ -77,7 +77,7 @@ func (s *BlockAPIService) BlockTransaction(
 		return nil, wrapErr(ErrBlockOrphaned, err)
 	}
 	if err != nil {
-		return nil, wrapErr(ErrGeth, err)
+		return nil, wrapErr(ErrRPCClient, err)
 	}
 
 	return &types.BlockTransactionResponse{
