@@ -206,21 +206,9 @@ func (ec *Client) Block(
 		[]*RosettaTypes.Transaction,
 		len(block_transfers),
 	)
-	// ops := []*RosettaTypes.Operation{}
 	for i, tx := range block_transfers {
-		populatedTransaction := &RosettaTypes.Transaction{
-			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
-				Hash: *tx.ID,
-			},
-			// Operations: ops,
-			// Metadata: map[string]interface{}{
-			// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
-			// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
-			// 	"receipt":   receiptMap,
-			// 	"trace":     traceMap,
-			// },
-		}
-		Transactions[i+1] = populatedTransaction
+		transaction, _ := CreateRosTransaction(tx)
+		Transactions[i] = transaction
 	}
 
 	return &RosettaTypes.Block{
@@ -260,22 +248,65 @@ func (ec *Client) BlockTransaction(
 	}
 	var transaction *RosettaTypes.Transaction
 	for _, tx := range block_transfers {
-		if *tx.ID == transactionIdentifier.Hash {
-			transaction = &RosettaTypes.Transaction{
-				TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
-					Hash: *tx.ID,
-				},
-				// Operations: ops,
-				// Metadata: map[string]interface{}{
-				// 	"gas_limit": hexutil.EncodeUint64(tx.Transaction.Gas()),
-				// 	"gas_price": hexutil.EncodeBig(tx.Transaction.GasPrice()),
-				// 	"receipt":   receiptMap,
-				// 	"trace":     traceMap,
-				// },
-			}
+		if tx.DeployHash == transactionIdentifier.Hash {
+			transaction, _ = CreateRosTransaction(tx)
 		}
 	}
 	return transaction, nil
+}
+
+func CreateRosTransaction(tx CasperSDK.TransferResponse) (*RosettaTypes.Transaction, *RosettaTypes.Error) {
+	rosOperations := CreateOperation(tx)
+	transaction := &RosettaTypes.Transaction{
+		TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
+			Hash: tx.DeployHash,
+		},
+		Operations: rosOperations,
+		Metadata:   map[string]interface{}{},
+	}
+
+	return transaction, nil
+
+}
+
+func CreateOperation(tx CasperSDK.TransferResponse) []*RosettaTypes.Operation {
+	return []*RosettaTypes.Operation{
+		{
+			OperationIdentifier: &RosettaTypes.OperationIdentifier{
+				Index: 0,
+			},
+			Type:   TransferOpType,
+			Status: RosettaTypes.String(""),
+			Account: &RosettaTypes.AccountIdentifier{
+				Address: tx.From,
+			},
+			Amount: &RosettaTypes.Amount{
+				Value:    tx.Amount,
+				Currency: Currency,
+			},
+		},
+
+		{
+			OperationIdentifier: &RosettaTypes.OperationIdentifier{
+				Index: 1,
+			},
+			RelatedOperations: []*RosettaTypes.OperationIdentifier{
+				{
+					Index: 0,
+				},
+			},
+			Type:   TransferOpType,
+			Status: RosettaTypes.String(""),
+			Account: &RosettaTypes.AccountIdentifier{
+				Address: tx.To,
+			},
+			Amount: &RosettaTypes.Amount{
+				Value:    tx.Amount,
+				Currency: Currency,
+			},
+		},
+	}
+
 }
 
 // // Header returns a block header from the current canonical chain. If number is
