@@ -35,13 +35,13 @@ type ConstructionAPIService struct {
 }
 
 const (
-	CHAIN_NAME      = "Chain Name"
-	TRANSFER_AMOUNT = "Transfer Amount"
-	PAYMENT_AMOUNT  = "Payment Amount"
-	TARGET_ADDR     = "Target ADDR"
-	SRC_ADDR        = "Source ADDR"
-	GAS_PRICE       = "Gas Price"
-	TRANSFER_ID     = "Transfer ID"
+	CHAIN_NAME      = "chain_name"
+	TRANSFER_AMOUNT = "transfer_amount"
+	PAYMENT_AMOUNT  = "payment_amount"
+	TARGET_ADDR     = "target_addr"
+	SRC_ADDR        = "source_addr"
+	GAS_PRICE       = "gas_price"
+	TRANSFER_ID     = "transfer_id"
 )
 
 // NewConstructionAPIService creates a new instance of a ConstructionAPIService.
@@ -86,7 +86,6 @@ func (s *ConstructionAPIService) ConstructionPreprocess(
 	for _, operation := range request.Operations {
 		if operation.OperationIdentifier.Index == 0 {
 			preProcessResp.Options[SRC_ADDR] = operation.Account.Address
-			// preProcessResp.Options[TRANSFER_AMOUNT] = operation.Amount.Value
 			sender := &types.AccountIdentifier{
 				Address: operation.Account.Address,
 			}

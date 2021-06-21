@@ -21,7 +21,7 @@ import (
 
 	CasperSDK "github.com/casper-ecosystem/casper-golang-sdk/sdk"
 
-	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types""
+	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 )
 
 const (
@@ -206,7 +206,7 @@ func (ec *Client) Block(
 		[]*RosettaTypes.Transaction,
 		len(block_transfers),
 	)
-	ops := []*RosettaTypes.Operation{}
+	// ops := []*RosettaTypes.Operation{}
 	for i, tx := range block_transfers {
 		populatedTransaction := &RosettaTypes.Transaction{
 			TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
