@@ -270,18 +270,25 @@ func CreateRosTransaction(tx CasperSDK.TransferResponse) (*RosettaTypes.Transact
 }
 
 func CreateOperation(tx CasperSDK.TransferResponse) []*RosettaTypes.Operation {
+	if tx.From == "" {
+		tx.From = "NA"
+	}
+	if tx.To == "" {
+		tx.To = "NA"
+	}
+	Neg_Amount := "-" + tx.Amount
 	return []*RosettaTypes.Operation{
 		{
 			OperationIdentifier: &RosettaTypes.OperationIdentifier{
 				Index: 0,
 			},
 			Type:   TransferOpType,
-			Status: RosettaTypes.String(""),
+			Status: RosettaTypes.String(SuccessStatus),
 			Account: &RosettaTypes.AccountIdentifier{
 				Address: tx.From,
 			},
 			Amount: &RosettaTypes.Amount{
-				Value:    tx.Amount,
+				Value:    Neg_Amount,
 				Currency: Currency,
 			},
 		},
@@ -296,7 +303,7 @@ func CreateOperation(tx CasperSDK.TransferResponse) []*RosettaTypes.Operation {
 				},
 			},
 			Type:   TransferOpType,
-			Status: RosettaTypes.String(""),
+			Status: RosettaTypes.String(SuccessStatus),
 			Account: &RosettaTypes.AccountIdentifier{
 				Address: tx.To,
 			},
@@ -1202,7 +1209,7 @@ func (ec *Client) Balance(
 		}
 	}
 	stateRootHash := blockres.Header.StateRootHash
-	key := "account-hash-" + account.Address //"account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
+	key := account.Address //"account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
 	var path []string
 
 	item, err := ec.RpcClient.GetStateItem(stateRootHash, key, path)

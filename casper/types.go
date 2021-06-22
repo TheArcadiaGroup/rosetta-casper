@@ -42,7 +42,7 @@ const (
 	Decimals = 9
 
 	// Transfer type
-	TransferOpType = "Transfer"
+	TransferOpType = "transfer"
 
 	// SuccessStatus is the status of any
 	// Ethereum operation considered successful.
