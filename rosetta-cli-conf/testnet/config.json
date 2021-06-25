@@ -12,10 +12,26 @@
   "memory_limit_disabled": true,
   "data": {
     "initial_balance_fetch_disabled": true,
+    "bootstrap_balances": "bootstrap_balances.json",
+    "active_reconciliation_concurrency": 0,
+    "inactive_reconciliation_concurrency": 0,
+    "inactive_reconciliation_frequency": 0,
+    "log_blocks": false,
+    "log_transactions": false,
+    "log_balance_changes": false,
+    "log_reconciliations": false,
+    "ignore_reconciliation_error": false,
+    "exempt_accounts": "",
+    "interesting_accounts": "",
+    "reconciliation_disabled": false,
+    "inactive_discrepency_search_disabled": false,
+    "balance_tracking_disabled": false,
+    "coin_tracking_disabled": false,
+    "results_output_file": "",
     "end_conditions": {
       "reconciliation_coverage": {
         "coverage": 0.95,
-        "from_tip": true
+        "from_tip": false
       }
     }
   }

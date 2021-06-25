@@ -1,12 +1,12 @@
 [
  {
   "account_identifier": {
-   "address": "b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
+   "address": "account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
   },
   "currency": {
    "symbol": "CSPR",
    "decimals": 9
   },
-  "value": "10000000000000000000"
+  "value": "9999995600000000000"
  }
 ]
