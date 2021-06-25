@@ -142,6 +142,16 @@ var (
 		Message:   "RPCClient not ready",
 		Retriable: true,
 	}
+
+	ErrRPCClientBlock = &types.Error{
+		Code:    14, //nolint
+		Message: "RPCClient block error",
+	}
+
+	ErrRPCClientTransaction = &types.Error{
+		Code:    15, //nolint
+		Message: "RPCClient Transaction error",
+	}
 )
 
 // wrapErr adds details to the types.Error provided. We use a function

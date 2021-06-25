@@ -26,7 +26,7 @@
     "reconciliation_disabled": false,
     "inactive_discrepency_search_disabled": false,
     "balance_tracking_disabled": false,
-    "coin_tracking_disabled": false,
+    "coin_tracking_disabled": true,
     "results_output_file": "",
     "end_conditions": {
       "reconciliation_coverage": {

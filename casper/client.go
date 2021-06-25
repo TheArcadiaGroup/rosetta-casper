@@ -88,6 +88,7 @@ func (ec *Client) Block(
 	var block CasperSDK.BlockResponse
 	var err error
 	var block_transfers []CasperSDK.TransferResponse
+
 	if blockIdentifier != nil {
 		if blockIdentifier.Hash != nil {
 			block, err = ec.RpcClient.GetBlockByHash(*blockIdentifier.Hash)
@@ -137,13 +138,24 @@ func (ec *Client) Block(
 			Index: BlockIdentifier.Index - 1,
 		}
 	}
+
+	//reading deploy hash list
+	var deployToTransferMap = make(map[string]CasperSDK.TransferResponse)
+	for _, trs := range block_transfers {
+		if _, ok := deployToTransferMap[trs.DeployHash]; !ok {
+			deployToTransferMap[trs.DeployHash] = trs
+		}
+	}
+
 	Transactions := make(
 		[]*RosettaTypes.Transaction,
-		len(block_transfers),
+		len(deployToTransferMap),
 	)
-	for i, tx := range block_transfers {
+	var i = 0
+	for _, tx := range deployToTransferMap {
 		transaction, _ := ec.CreateRosTransaction(tx)
 		Transactions[i] = transaction
+		i++
 	}
 
 	return &RosettaTypes.Block{

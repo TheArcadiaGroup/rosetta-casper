@@ -11,4 +11,6 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 )
 
+replace github.com/casper-ecosystem/casper-golang-sdk => github.com/phamvancam2104/casper-golang-sdk v0.0.0-20210625210622-4acb09d72768
+
 go 1.15
