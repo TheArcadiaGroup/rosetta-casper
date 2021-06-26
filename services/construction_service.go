@@ -99,7 +99,6 @@ func (s *ConstructionAPIService) ConstructionPreprocess(
 		}
 	}
 	preProcessResp.Options[GAS_PRICE] = "1"
-	preProcessResp.Options[PAYMENT_AMOUNT] = request.MaxFee[0].Value
 
 	return preProcessResp, nil
 }
@@ -123,7 +122,7 @@ func (s *ConstructionAPIService) ConstructionMetadata(
 	resp.Metadata[TARGET_ADDR] = request.Options[TARGET_ADDR]
 	resp.Metadata[SRC_ADDR] = request.Options[SRC_ADDR]
 	resp.Metadata[GAS_PRICE] = request.Options[GAS_PRICE]
-	resp.Metadata[PAYMENT_AMOUNT] = request.Options[PAYMENT_AMOUNT]
+	// resp.Metadata[PAYMENT_AMOUNT] = request.Options[PAYMENT_AMOUNT]
 	resp.Metadata[TRANSFER_ID] = request.Options[TRANSFER_ID]
 
 	return resp, nil
@@ -143,11 +142,11 @@ func (s *ConstructionAPIService) ConstructionPayloads(
 	deployParams := &casper_client_sdk.DeployParams{
 		ChainName:      request.Metadata[CHAIN_NAME].(string),
 		TransferAmount: request.Metadata[TRANSFER_AMOUNT].(string),
-		PaymentAmount:  request.Metadata[PAYMENT_AMOUNT].(string),
-		TargetAccount:  request.Metadata[TARGET_ADDR].(string),
-		SrcAccount:     request.Metadata[SRC_ADDR].(string),
-		GasPrice:       request.Metadata[GAS_PRICE].(string),
-		TransferID:     transfer_id,
+		// PaymentAmount:  request.Metadata[PAYMENT_AMOUNT].(string),
+		TargetAccount: request.Metadata[TARGET_ADDR].(string),
+		SrcAccount:    request.Metadata[SRC_ADDR].(string),
+		GasPrice:      request.Metadata[GAS_PRICE].(string),
+		TransferID:    transfer_id,
 	}
 	unsignTransferJson, err := json.Marshal(casper_client_sdk.NewDeploy(*deployParams))
 	if err != nil {

@@ -16,10 +16,14 @@ package casper
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	CasperSDK "github.com/casper-ecosystem/casper-golang-sdk/sdk"
+	"golang.org/x/crypto/blake2b"
 
 	RosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 )
@@ -294,6 +298,7 @@ func (ec *Client) Balance(
 ) (*RosettaTypes.AccountBalanceResponse, error) {
 	var blockres CasperSDK.BlockResponse
 	var err error
+	var balance big.Int
 	if block != nil {
 		if block.Hash != nil {
 			blockres, err = ec.RpcClient.GetBlockByHash(*block.Hash)
@@ -315,17 +320,46 @@ func (ec *Client) Balance(
 		}
 	}
 	stateRootHash := blockres.Header.StateRootHash
-	key := account.Address //"account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446"
-	var path []string
 
-	item, err := ec.RpcClient.GetStateItem(stateRootHash, key, path)
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not get state item", err)
-	}
-	balanceUref := item.Account.MainPurse
-	balance, err := ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
-	if err != nil {
-		return nil, fmt.Errorf("can't get account balance")
+	if strings.Contains(account.Address, "account-hash") {
+		var path []string
+		item, err := ec.RpcClient.GetStateItem(stateRootHash, account.Address, path)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get state item", err)
+		}
+		balanceUref := item.Account.MainPurse
+		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
+		if err != nil {
+			return nil, fmt.Errorf("can't get account balance")
+		}
+	} else if strings.Contains(account.Address, "uref") {
+		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, account.Address)
+		if err != nil {
+			return nil, fmt.Errorf("can't get account balance")
+		}
+	} else if account.Address[0:2] == "01" || account.Address[0:2] == "02" {
+		account := account.Address[2:len(account.Address)]
+		pubbyte, _ := hex.DecodeString(account)
+		name := strings.ToLower("ED25519")
+		sep := "00"
+		decoded_sep, _ := hex.DecodeString(sep)
+		buffer := append([]byte(name), decoded_sep...)
+		buffer = append(buffer, pubbyte...)
+
+		hash := blake2b.Sum256(buffer)
+		resHash := fmt.Sprintf("account-hash-%s", hex.EncodeToString(hash[:]))
+		var path []string
+		item, err := ec.RpcClient.GetStateItem(stateRootHash, resHash, path)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get state item", err)
+		}
+		balanceUref := item.Account.MainPurse
+		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
+		if err != nil {
+			return nil, fmt.Errorf("can't get account balance")
+		}
+	} else {
+		return nil, fmt.Errorf("Invalid input account")
 	}
 
 	return &RosettaTypes.AccountBalanceResponse{

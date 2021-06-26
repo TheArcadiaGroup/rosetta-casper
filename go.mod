@@ -8,6 +8,7 @@ require (
 	github.com/fatih/color v1.10.0
 	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.7.0
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 )
 
