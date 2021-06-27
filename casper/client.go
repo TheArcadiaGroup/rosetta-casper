@@ -33,6 +33,8 @@ const (
 
 	maxTraceConcurrency  = int64(16) // nolint:gomnd
 	semaphoreTraceWeight = int64(1)  // nolint:gomnd
+	ED25519              = "ed25519"
+	SECP256K1            = "secp256k1"
 )
 
 type Client struct {
@@ -337,24 +339,13 @@ func (ec *Client) Balance(
 		if err != nil {
 			return nil, fmt.Errorf("can't get account balance")
 		}
-	} else if account.Address[0:2] == "01" || account.Address[0:2] == "02" {
-		account := account.Address[2:len(account.Address)]
-		pubbyte, _ := hex.DecodeString(account)
-		name := strings.ToLower("ED25519")
-		sep := "00"
-		decoded_sep, _ := hex.DecodeString(sep)
-		buffer := append([]byte(name), decoded_sep...)
-		buffer = append(buffer, pubbyte...)
-
-		hash := blake2b.Sum256(buffer)
-		resHash := fmt.Sprintf("account-hash-%s", hex.EncodeToString(hash[:]))
-		var path []string
-		item, err := ec.RpcClient.GetStateItem(stateRootHash, resHash, path)
+	} else if account.Address[0:2] == "01" {
+		balance, err = ec.AccountHash(account.Address, ED25519, stateRootHash)
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not get state item", err)
+			return nil, fmt.Errorf("can't get account balance")
 		}
-		balanceUref := item.Account.MainPurse
-		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
+	} else if account.Address[0:2] == "02" {
+		balance, err = ec.AccountHash(account.Address, SECP256K1, stateRootHash)
 		if err != nil {
 			return nil, fmt.Errorf("can't get account balance")
 		}
@@ -375,4 +366,28 @@ func (ec *Client) Balance(
 		},
 		Metadata: map[string]interface{}{},
 	}, nil
+}
+func (ec *Client) AccountHash(accountAddr string, hashtype string, stateroothash string) (big.Int, error) {
+	var initV = big.Int{}
+	account := accountAddr[2:len(accountAddr)]
+	pubbyte, _ := hex.DecodeString(account)
+	name := hashtype
+	sep := "00"
+	decoded_sep, _ := hex.DecodeString(sep)
+	buffer := append([]byte(name), decoded_sep...)
+	buffer = append(buffer, pubbyte...)
+
+	hash := blake2b.Sum256(buffer)
+	resHash := fmt.Sprintf("account-hash-%s", hex.EncodeToString(hash[:]))
+	var path []string
+	item, err := ec.RpcClient.GetStateItem(stateroothash, resHash, path)
+	if err != nil {
+		return initV, fmt.Errorf("%w: could not get state item", err)
+	}
+	balanceUref := item.Account.MainPurse
+	balance, err := ec.RpcClient.GetAccountBalance(stateroothash, balanceUref)
+	if err != nil {
+		return initV, fmt.Errorf("can't get account balance")
+	}
+	return balance, nil
 }
