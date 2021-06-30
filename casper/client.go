@@ -199,7 +199,10 @@ func (ec *Client) Block(
 	var i = 0
 	for deployHash, transfers := range deployToTransferMap {
 		log.Printf("%s %d %s", deployHash, len(transfers), block.Hash)
-		transaction, _ := ec.CreateRosTransaction(deployHash, transfers, &block, validatorMainPurse)
+		transaction, err := ec.CreateRosTransaction(deployHash, transfers, &block, validatorMainPurse)
+		if err != nil {
+			return nil, fmt.Errorf("%w: Failed to create rosetta transaction for deploy "+deployHash, err)
+		}
 		Transactions[i] = transaction
 		i++
 	}
@@ -289,9 +292,9 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 	}
 
 	var rosOperations []*RosettaTypes.Operation
-	signerMainPurse, err := ec.GetMainPurseFromPublicKey(deploy.Deploy.Approvals[0].Signer, block.Header.StateRootHash)
+	signerMainPurse, err := ec.GetMainPurseFromPublicKey(deploy.Deploy.Header.Account, block.Header.StateRootHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get signer purse")
+		return nil, fmt.Errorf("failed to get signer purse " + deploy.Deploy.Header.Account)
 	}
 	var paymentAmount string = "0"
 	if len(deploy.Deploy.Payment.ModuleBytes.Args) != 0 {
@@ -550,12 +553,12 @@ func (ec *Client) Balance(
 	} else if account.Address[0:2] == "01" {
 		balanceUref, err = ec.GetMainPurseFromPublicKey(account.Address, stateRootHash)
 		if err != nil {
-			return nil, fmt.Errorf("can't get account balance")
+			return nil, fmt.Errorf("%w: can't get account purse 01", err)
 		}
 	} else if account.Address[0:2] == "02" {
 		balanceUref, err = ec.GetMainPurseFromPublicKey(account.Address, stateRootHash)
 		if err != nil {
-			return nil, fmt.Errorf("can't get account balance")
+			return nil, fmt.Errorf("%w: can't get account purse 02", err)
 		}
 	} else {
 		return nil, fmt.Errorf("Invalid input account")
@@ -563,7 +566,7 @@ func (ec *Client) Balance(
 
 	balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
 	if err != nil {
-		return nil, fmt.Errorf("can't get account balance")
+		return nil, fmt.Errorf("%w: can't get account balance", err)
 	}
 
 	return &RosettaTypes.AccountBalanceResponse{
@@ -598,7 +601,7 @@ func (ec *Client) GetMainPurseFromPublicKey(accountAddr string, stateroothash st
 	var path []string
 	item, err := ec.RpcClient.GetStateItem(stateroothash, resHash, path)
 	if err != nil {
-		return "", fmt.Errorf("%w: could not get state item", err)
+		return "", fmt.Errorf("could not get state item : ----" + err.Error() + "---")
 	}
 	balanceUref := item.Account.MainPurse
 	return balanceUref, nil
