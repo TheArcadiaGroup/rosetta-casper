@@ -42,7 +42,10 @@ const (
 	Decimals = 9
 
 	// Transfer type
-	TransferOpType = "transfer"
+	TransferOpType = "TRANSFER"
+
+	// FeeOpType is used to represent fee operations.
+	FeeOpType = "FEE"
 
 	// SuccessStatus is the status of any
 	// Ethereum operation considered successful.
@@ -108,6 +111,7 @@ var (
 	// OperationTypes are all suppoorted operation types.
 	OperationTypes = []string{
 		TransferOpType,
+		FeeOpType,
 	}
 
 	// OperationStatuses are all supported operation statuses.

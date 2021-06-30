@@ -4,12 +4,13 @@
     "network": "casper-test"
   },
   "data_directory": "cli-data",
-  "http_timeout": 300,
+  "http_timeout": 1000000,
   "max_retries": 5,
   "max_online_connections": 1000,
   "tip_delay": 1800,
   "compression_disabled": true,
   "memory_limit_disabled": true,
+  "max_sync_concurrency": 32,
   "data": {
     "initial_balance_fetch_disabled": true,
     "bootstrap_balances": "bootstrap_balances.json",
@@ -23,16 +24,10 @@
     "ignore_reconciliation_error": false,
     "exempt_accounts": "",
     "interesting_accounts": "",
-    "reconciliation_disabled": false,
+    "reconciliation_disabled": true,
     "inactive_discrepency_search_disabled": false,
     "balance_tracking_disabled": false,
     "coin_tracking_disabled": true,
-    "results_output_file": "",
-    "end_conditions": {
-      "reconciliation_coverage": {
-        "coverage": 0.95,
-        "from_tip": false
-      }
-    }
+    "results_output_file": ""
   }
 }

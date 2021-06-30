@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -84,6 +85,30 @@ func (ec *Client) Status(ctx context.Context) (
 		nil
 }
 
+func (ec *Client) GetBlockResponse(
+	blockIdentifier *RosettaTypes.PartialBlockIdentifier,
+) (*CasperSDK.BlockResponse, error) {
+	if blockIdentifier.Hash != nil {
+		block, err := ec.RpcClient.GetBlockByHash(*blockIdentifier.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block by hash", err)
+		}
+
+		return &block, err
+	}
+	if blockIdentifier.Index != nil {
+		var index uint64
+		index = uint64(*blockIdentifier.Index)
+		block, err := ec.RpcClient.GetBlockByHeight(index)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not get block by height", err)
+		}
+
+		return &block, err
+	}
+	return nil, fmt.Errorf("invalid block identifier")
+}
+
 // Block returns a populated block at the *RosettaTypes.PartialBlockIdentifier.
 // If neither the hash or index is populated in the *RosettaTypes.PartialBlockIdentifier,
 // the current block is returned.
@@ -146,20 +171,35 @@ func (ec *Client) Block(
 	}
 
 	//reading deploy hash list
-	var deployToTransferMap = make(map[string]CasperSDK.TransferResponse)
+	var deployToTransferMap = make(map[string][]*CasperSDK.TransferResponse)
 	for _, trs := range block_transfers {
 		if _, ok := deployToTransferMap[trs.DeployHash]; !ok {
-			deployToTransferMap[trs.DeployHash] = trs
+			deployToTransferMap[trs.DeployHash] = []*CasperSDK.TransferResponse{}
 		}
+		deployToTransferMap[trs.DeployHash] = append(deployToTransferMap[trs.DeployHash], &trs)
 	}
 
+	alldeployHashes := block.Body.DeployHashes
+	for _, deployHash := range alldeployHashes {
+		if _, ok := deployToTransferMap[deployHash]; !ok {
+			deployToTransferMap[deployHash] = []*CasperSDK.TransferResponse{}
+		}
+	}
 	Transactions := make(
 		[]*RosettaTypes.Transaction,
 		len(deployToTransferMap),
 	)
+
+	validator := block.Body.Proposer
+	validatorMainPurse, err := ec.GetMainPurseFromPublicKey(validator, block.Header.StateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get validator purse")
+	}
+
 	var i = 0
-	for _, tx := range deployToTransferMap {
-		transaction, _ := ec.CreateRosTransaction(tx)
+	for deployHash, transfers := range deployToTransferMap {
+		log.Printf("%s %d %s", deployHash, len(transfers), block.Hash)
+		transaction, _ := ec.CreateRosTransaction(deployHash, transfers, &block, validatorMainPurse)
 		Transactions[i] = transaction
 		i++
 	}
@@ -177,42 +217,217 @@ func (ec *Client) BlockTransaction(
 	blockIdentifier *RosettaTypes.BlockIdentifier,
 	transactionIdentifier *RosettaTypes.TransactionIdentifier,
 ) (*RosettaTypes.Transaction, error) {
-	var block_transfers []CasperSDK.TransferResponse
-	var err error
-	if blockIdentifier != nil {
-		if blockIdentifier.Hash != "" {
-			block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(blockIdentifier.Hash)
-			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
-			}
-		}
-		if blockIdentifier.Index != 0 {
-			block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(blockIdentifier.Index))
-			if err != nil {
-				return nil, fmt.Errorf("%w: could not get block", err)
-			}
+	if transactionIdentifier == nil {
+		return nil, fmt.Errorf("null pointer input")
+	}
+	// var block_transfers []CasperSDK.TransferResponse
+	// var err error
+	// if blockIdentifier != nil {
+	// 	if blockIdentifier.Hash != "" {
+	// 		block_transfers, err = ec.RpcClient.GetBlockTransfersByHash(blockIdentifier.Hash)
+	// 		if err != nil {
+	// 			return nil, fmt.Errorf("%w: could not get block", err)
+	// 		}
+	// 	}
+	// 	if blockIdentifier.Index != 0 {
+	// 		block_transfers, err = ec.RpcClient.GetBlockTransfersByHeight(uint64(blockIdentifier.Index))
+	// 		if err != nil {
+	// 			return nil, fmt.Errorf("%w: could not get block", err)
+	// 		}
+	// 	}
+	// }
+	// if blockIdentifier == nil {
+	// 	block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("%w: could not get block", err)
+	// 	}
+	// }
+	deploy, err := ec.RpcClient.GetDeploy(transactionIdentifier.Hash)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get deploy", err)
+	}
+	if len(deploy.ExecutionResults) == 0 {
+		return nil, fmt.Errorf("invalid deploy")
+	}
+
+	blkIdentifier := &RosettaTypes.PartialBlockIdentifier{Hash: &deploy.ExecutionResults[0].BlockHash}
+	block, err := ec.GetBlockResponse(blkIdentifier)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get deploy block", err)
+	}
+
+	block_transfers, err := ec.RpcClient.GetBlockTransfersByHash(blockIdentifier.Hash)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get block", err)
+	}
+
+	var transfers []*CasperSDK.TransferResponse
+	for i := 0; i < len(block_transfers); i++ {
+		if block_transfers[i].DeployHash == deploy.Deploy.Hash {
+			transfers = append(transfers, &block_transfers[i])
 		}
 	}
-	if blockIdentifier == nil {
-		block_transfers, err = ec.RpcClient.GetLatestBlockTransfers()
-		if err != nil {
-			return nil, fmt.Errorf("%w: could not get block", err)
-		}
+
+	validator := block.Body.Proposer
+	validatorMainPurse, err := ec.GetMainPurseFromPublicKey(validator, block.Header.StateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get validator purse BlockTransaction")
 	}
-	var transaction *RosettaTypes.Transaction
-	for _, tx := range block_transfers {
-		if tx.DeployHash == transactionIdentifier.Hash {
-			transaction, _ = ec.CreateRosTransaction(tx)
-		}
-	}
-	return transaction, nil
+
+	return ec.CreateRosTransaction(deploy.Deploy.Hash, transfers, block, validatorMainPurse)
 }
 
-func (ec *Client) CreateRosTransaction(tx CasperSDK.TransferResponse) (*RosettaTypes.Transaction, *RosettaTypes.Error) {
-	rosOperations, _ := ec.CreateOperation(tx)
+func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK.TransferResponse, block *CasperSDK.BlockResponse, validatorMainPurse string) (*RosettaTypes.Transaction, error) {
+	//read deploy
+	deploy, err := ec.RpcClient.GetDeploy(deployHash)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get deploy", err)
+	}
+
+	if len(deploy.ExecutionResults) == 0 {
+		return nil, fmt.Errorf("invalid deploy")
+	}
+
+	var rosOperations []*RosettaTypes.Operation
+	signerMainPurse, err := ec.GetMainPurseFromPublicKey(deploy.Deploy.Approvals[0].Signer, block.Header.StateRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get signer purse")
+	}
+	var paymentAmount string = "0"
+	if len(deploy.Deploy.Payment.ModuleBytes.Args) != 0 {
+		paymentAmount, err = ec.RpcClient.ReadPaymentAmount(&deploy.Deploy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get read payment amount")
+		}
+	}
+	log.Printf("%s %s %s", validatorMainPurse, signerMainPurse, paymentAmount)
+
+	if deploy.ExecutionResults[0].Result.Failure != nil {
+		txCost := deploy.ExecutionResults[0].Result.Failure.Cost
+		Neg_Amount := "-" + txCost
+		//transaction error, tx cost is moved from sender to validator
+		rosOperations = []*RosettaTypes.Operation{
+			{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: 0,
+				},
+				Type:   FeeOpType,
+				Status: RosettaTypes.String(FailureStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: signerMainPurse,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    Neg_Amount,
+					Currency: Currency,
+				},
+			},
+
+			{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: 1,
+				},
+				RelatedOperations: []*RosettaTypes.OperationIdentifier{
+					{
+						Index: 0,
+					},
+				},
+				Type:   FeeOpType,
+				Status: RosettaTypes.String(FailureStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: validatorMainPurse,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    txCost,
+					Currency: Currency,
+				},
+			},
+		}
+	} else {
+		txCost := deploy.ExecutionResults[0].Result.Success.Cost
+		if paymentAmount == "0" {
+			paymentAmount = txCost
+		}
+		Neg_Amount := "-" + paymentAmount
+		//transaction error, tx cost is moved from sender to validator
+		rosOperations = []*RosettaTypes.Operation{
+			{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: 0,
+				},
+				Type:   FeeOpType,
+				Status: RosettaTypes.String(SuccessStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: signerMainPurse,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    Neg_Amount,
+					Currency: Currency,
+				},
+			},
+
+			{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: 1,
+				},
+				RelatedOperations: []*RosettaTypes.OperationIdentifier{
+					{
+						Index: 0,
+					},
+				},
+				Type:   FeeOpType,
+				Status: RosettaTypes.String(SuccessStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: validatorMainPurse,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    paymentAmount,
+					Currency: Currency,
+				},
+			},
+		}
+		for i := 0; i < len(transfers); i++ {
+			tx := transfers[i]
+			transferAmount := tx.Amount
+			Neg_Amount := "-" + transferAmount
+			rosOp := &RosettaTypes.Operation{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: int64(2*i + 2),
+				},
+				Type:   TransferOpType,
+				Status: RosettaTypes.String(SuccessStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: tx.Source,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    Neg_Amount,
+					Currency: Currency,
+				},
+			}
+
+			rosOperations = append(rosOperations, rosOp)
+
+			rosOp2 := &RosettaTypes.Operation{
+				OperationIdentifier: &RosettaTypes.OperationIdentifier{
+					Index: int64(2*i + 1 + 2),
+				},
+				Type:   TransferOpType,
+				Status: RosettaTypes.String(SuccessStatus),
+				Account: &RosettaTypes.AccountIdentifier{
+					Address: tx.Target,
+				},
+				Amount: &RosettaTypes.Amount{
+					Value:    transferAmount,
+					Currency: Currency,
+				},
+			}
+
+			rosOperations = append(rosOperations, rosOp2)
+		}
+	}
+
 	transaction := &RosettaTypes.Transaction{
 		TransactionIdentifier: &RosettaTypes.TransactionIdentifier{
-			Hash: tx.DeployHash,
+			Hash: deployHash,
 		},
 		Operations: rosOperations,
 		Metadata:   map[string]interface{}{},
@@ -322,35 +537,33 @@ func (ec *Client) Balance(
 		}
 	}
 	stateRootHash := blockres.Header.StateRootHash
-
+	var balanceUref string
 	if strings.Contains(account.Address, "account-hash") {
 		var path []string
 		item, err := ec.RpcClient.GetStateItem(stateRootHash, account.Address, path)
 		if err != nil {
 			return nil, fmt.Errorf("%w: could not get state item", err)
 		}
-		balanceUref := item.Account.MainPurse
-		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
-		if err != nil {
-			return nil, fmt.Errorf("can't get account balance")
-		}
+		balanceUref = item.Account.MainPurse
 	} else if strings.Contains(account.Address, "uref") {
-		balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, account.Address)
-		if err != nil {
-			return nil, fmt.Errorf("can't get account balance")
-		}
+		balanceUref = account.Address
 	} else if account.Address[0:2] == "01" {
-		balance, err = ec.AccountHash(account.Address, ED25519, stateRootHash)
+		balanceUref, err = ec.GetMainPurseFromPublicKey(account.Address, stateRootHash)
 		if err != nil {
 			return nil, fmt.Errorf("can't get account balance")
 		}
 	} else if account.Address[0:2] == "02" {
-		balance, err = ec.AccountHash(account.Address, SECP256K1, stateRootHash)
+		balanceUref, err = ec.GetMainPurseFromPublicKey(account.Address, stateRootHash)
 		if err != nil {
 			return nil, fmt.Errorf("can't get account balance")
 		}
 	} else {
 		return nil, fmt.Errorf("Invalid input account")
+	}
+
+	balance, err = ec.RpcClient.GetAccountBalance(stateRootHash, balanceUref)
+	if err != nil {
+		return nil, fmt.Errorf("can't get account balance")
 	}
 
 	return &RosettaTypes.AccountBalanceResponse{
@@ -367,9 +580,12 @@ func (ec *Client) Balance(
 		Metadata: map[string]interface{}{},
 	}, nil
 }
-func (ec *Client) AccountHash(accountAddr string, hashtype string, stateroothash string) (big.Int, error) {
-	var initV = big.Int{}
-	account := accountAddr[2:len(accountAddr)]
+func (ec *Client) GetMainPurseFromPublicKey(accountAddr string, stateroothash string) (string, error) {
+	hashtype := SECP256K1
+	if accountAddr[0:2] == "01" {
+		hashtype = ED25519
+	}
+	account := accountAddr[2:]
 	pubbyte, _ := hex.DecodeString(account)
 	name := hashtype
 	sep := "00"
@@ -382,12 +598,8 @@ func (ec *Client) AccountHash(accountAddr string, hashtype string, stateroothash
 	var path []string
 	item, err := ec.RpcClient.GetStateItem(stateroothash, resHash, path)
 	if err != nil {
-		return initV, fmt.Errorf("%w: could not get state item", err)
+		return "", fmt.Errorf("%w: could not get state item", err)
 	}
 	balanceUref := item.Account.MainPurse
-	balance, err := ec.RpcClient.GetAccountBalance(stateroothash, balanceUref)
-	if err != nil {
-		return initV, fmt.Errorf("can't get account balance")
-	}
-	return balance, nil
+	return balanceUref, nil
 }
