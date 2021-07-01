@@ -342,7 +342,7 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 				Type:   FeeOpType,
 				Status: RosettaTypes.String(FailureStatus),
 				Account: &RosettaTypes.AccountIdentifier{
-					Address: validatorMainPurse,
+					Address: PurseWithoutIndex(validatorMainPurse),
 				},
 				Amount: &RosettaTypes.Amount{
 					Value:    txCost,
