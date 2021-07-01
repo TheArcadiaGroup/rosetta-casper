@@ -6,8 +6,7 @@ require (
 	github.com/coinbase/rosetta-sdk-go v0.6.10
 	github.com/fatih/color v1.12.0
 	github.com/mattn/go-isatty v0.0.13 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.0
 	github.com/tendermint/tendermint v0.34.11 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
