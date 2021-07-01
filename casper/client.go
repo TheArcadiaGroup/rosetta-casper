@@ -44,7 +44,7 @@ type Client struct {
 
 // NewClient creates a Client that from the provided url and params.
 func NewClient() (*Client, error) {
-	RpcClient := CasperSDK.NewRpcClient("http://104.156.254.95:7777/rpc")
+	RpcClient := CasperSDK.NewRpcClient("http://45.32.28.180:7777/rpc")
 	return &Client{RpcClient}, nil
 }
 
@@ -280,6 +280,11 @@ func (ec *Client) BlockTransaction(
 	return ec.CreateRosTransaction(deploy.Deploy.Hash, transfers, block, validatorMainPurse)
 }
 
+func PurseWithoutIndex(purse string) string {
+	lastIndex := strings.LastIndex(purse, "-")
+	return purse[:lastIndex]
+}
+
 func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK.TransferResponse, block *CasperSDK.BlockResponse, validatorMainPurse string) (*RosettaTypes.Transaction, error) {
 	//read deploy
 	deploy, err := ec.RpcClient.GetDeploy(deployHash)
@@ -317,7 +322,7 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 				Type:   FeeOpType,
 				Status: RosettaTypes.String(FailureStatus),
 				Account: &RosettaTypes.AccountIdentifier{
-					Address: signerMainPurse,
+					Address: PurseWithoutIndex(signerMainPurse),
 				},
 				Amount: &RosettaTypes.Amount{
 					Value:    Neg_Amount,
@@ -360,7 +365,7 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 				Type:   FeeOpType,
 				Status: RosettaTypes.String(SuccessStatus),
 				Account: &RosettaTypes.AccountIdentifier{
-					Address: signerMainPurse,
+					Address: PurseWithoutIndex(signerMainPurse),
 				},
 				Amount: &RosettaTypes.Amount{
 					Value:    Neg_Amount,
@@ -399,7 +404,7 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 				Type:   TransferOpType,
 				Status: RosettaTypes.String(SuccessStatus),
 				Account: &RosettaTypes.AccountIdentifier{
-					Address: tx.Source,
+					Address: PurseWithoutIndex(tx.Source),
 				},
 				Amount: &RosettaTypes.Amount{
 					Value:    Neg_Amount,
@@ -416,7 +421,7 @@ func (ec *Client) CreateRosTransaction(deployHash string, transfers []*CasperSDK
 				Type:   TransferOpType,
 				Status: RosettaTypes.String(SuccessStatus),
 				Account: &RosettaTypes.AccountIdentifier{
-					Address: tx.Target,
+					Address: PurseWithoutIndex(tx.Target),
 				},
 				Amount: &RosettaTypes.Amount{
 					Value:    transferAmount,
@@ -549,7 +554,11 @@ func (ec *Client) Balance(
 		}
 		balanceUref = item.Account.MainPurse
 	} else if strings.Contains(account.Address, "uref") {
-		balanceUref = account.Address
+		if 1 == strings.Count(account.Address, "-") {
+			balanceUref = account.Address + "-001" //first uref
+		} else {
+			balanceUref = account.Address
+		}
 	} else if account.Address[0:2] == "01" {
 		balanceUref, err = ec.GetMainPurseFromPublicKey(account.Address, stateRootHash)
 		if err != nil {
