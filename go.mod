@@ -3,7 +3,7 @@ module github.com/TheArcadiaGroup/rosetta-casper
 require (
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/casper-ecosystem/casper-golang-sdk v0.0.0-20210512154135-0e4877acec7b
-	github.com/coinbase/rosetta-sdk-go v0.6.10
+	github.com/coinbase/rosetta-sdk-go v0.7.0
 	github.com/fatih/color v1.12.0
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
